@@ -21,6 +21,7 @@
           pkgs.web-ext
           pkgs.git
           pkgs.zip
+          pkgs.gh
         ];
 
         shellHook = ''

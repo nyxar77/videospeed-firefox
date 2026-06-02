@@ -38,12 +38,50 @@ class VideoSpeedExtension {
         return;
       }
 
+      this.applyInitialSpeed(document);
+
       // Defer DOM work so page frameworks finish init before we mutate.
       this.deferDOMWork(document);
     } catch (error) {
       this.logger.error(`Failed to initialize Video Speed Controller: ${error.message}`);
       this.logger.error(`Error stack: ${error.stack}`);
     }
+  }
+
+  getInitialTargetSpeed() {
+    return this.config.settings.lastSpeed ?? this.config.settings.siteDefaultSpeed ?? 1.0;
+  }
+
+  applyInitialSpeed(document) {
+    const targetSpeed = Math.min(
+      Math.max(this.getInitialTargetSpeed(), window.VSC.Constants.SPEED_LIMITS.MIN),
+      window.VSC.Constants.SPEED_LIMITS.MAX
+    );
+
+    if (targetSpeed === 1.0) {
+      return;
+    }
+
+    const selector = this.config.settings.audioBoolean ? 'video,audio' : 'video';
+    const mediaElements = [...new Set(Array.from(document.querySelectorAll(selector)))];
+
+    mediaElements.forEach((media) => {
+      if (!media.isConnected || this.siteHandlerManager.shouldIgnoreVideo(media)) {
+        return;
+      }
+
+      const applySpeed = () => {
+        if (media.playbackRate !== targetSpeed) {
+          this.siteHandlerManager.handleSpeedChange(media, targetSpeed);
+        }
+      };
+
+      if (media.readyState < 1) {
+        media.addEventListener('loadedmetadata', applySpeed, { once: true });
+      } else {
+        applySpeed();
+      }
+    });
   }
 
   /**

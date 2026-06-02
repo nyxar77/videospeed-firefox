@@ -1,8 +1,3 @@
-/**
- * Unit tests for VideoSpeedExtension (inject.js)
- * Testing the fix for video elements without parentElement
- */
-
 import {
   installChromeMock,
   cleanupChromeMock,
@@ -173,11 +168,56 @@ describe('Inject', () => {
     expect(video.vsc instanceof window.VSC.VideoController).toBe(true);
   });
 
+  it('applyInitialSpeed updates existing media before controller attachment', () => {
+    extension = window.VSC_controller;
+    expect(extension).toBeDefined();
+
+    const video = createMockVideo({ readyState: 4, playbackRate: 1.0 });
+    mockDOM.container.appendChild(video);
+
+    extension.config.settings.lastSpeed = 1.75;
+    extension.config.settings.siteDefaultSpeed = undefined;
+    extension.applyInitialSpeed(document);
+
+    expect(video.playbackRate).toBe(1.75);
+    expect(video.vsc).toBeUndefined();
+  });
+
+  it('applyInitialSpeed uses site default when lastSpeed is null', () => {
+    extension = window.VSC_controller;
+    expect(extension).toBeDefined();
+
+    const video = createMockVideo({ readyState: 4, playbackRate: 1.0 });
+    mockDOM.container.appendChild(video);
+
+    extension.config.settings.lastSpeed = null;
+    extension.config.settings.siteDefaultSpeed = 2.25;
+    extension.applyInitialSpeed(document);
+
+    expect(video.playbackRate).toBe(2.25);
+    expect(video.vsc).toBeUndefined();
+  });
+
+  it('applyInitialSpeed skips default 1x speed', () => {
+    extension = window.VSC_controller;
+    expect(extension).toBeDefined();
+
+    const video = createMockVideo({ readyState: 4, playbackRate: 1.5 });
+    mockDOM.container.appendChild(video);
+
+    extension.config.settings.lastSpeed = null;
+    extension.config.settings.siteDefaultSpeed = undefined;
+    extension.applyInitialSpeed(document);
+
+    expect(video.playbackRate).toBe(1.5);
+    expect(video.vsc).toBeUndefined();
+  });
+
   it('onVideoFound defers controller when video has no src (no-source placeholder)', () => {
     extension = window.VSC_controller;
     expect(extension).toBeDefined();
 
-    // readyState=0, no src → MUST defer, because injecting into raw uninitialized DOM crashes Polymer
+    // Keep controller attachment out of raw uninitialized DOM.
     const video = createMockVideo({ readyState: 0, currentSrc: '' });
     video.addEventListener = vi.fn();
     const parent = document.createElement('div');

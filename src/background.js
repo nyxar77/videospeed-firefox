@@ -7,24 +7,30 @@ import {
 } from './utils/extension-api.js';
 
 const extensionApi = getExtensionApi();
-const assetPathPrefix = globalThis.location?.pathname?.includes('/dist/') ? 'dist/' : '';
 
-/**
- * Update extension icon based on enabled state
- * @param {boolean} enabled - Whether extension is enabled
- */
+function getActionIconDirectory() {
+  const defaultIcon = extensionApi.runtime.getManifest?.().action?.default_icon;
+  const icon16Path =
+    typeof defaultIcon === 'string' ? defaultIcon : defaultIcon?.['16'] || defaultIcon?.[16];
+
+  if (typeof icon16Path === 'string') {
+    return icon16Path.replace(/icon16\.png$/, '');
+  }
+
+  return 'assets/icons/';
+}
+
+const actionIconDirectory = getActionIconDirectory();
+
 async function updateIcon(enabled) {
   try {
     const suffix = enabled ? '' : '_disabled';
     await actionSetIcon({
       path: {
-        16: `${assetPathPrefix}assets/icons/icon16${suffix}.png`,
-        19: `${assetPathPrefix}assets/icons/icon19${suffix}.png`,
-        24: `${assetPathPrefix}assets/icons/icon24${suffix}.png`,
-        32: `${assetPathPrefix}assets/icons/icon32${suffix}.png`,
-        38: `${assetPathPrefix}assets/icons/icon38${suffix}.png`,
-        48: `${assetPathPrefix}assets/icons/icon48${suffix}.png`,
-        64: `${assetPathPrefix}assets/icons/icon64${suffix}.png`,
+        16: `${actionIconDirectory}icon16${suffix}.png`,
+        32: `${actionIconDirectory}icon32${suffix}.png`,
+        48: `${actionIconDirectory}icon48${suffix}.png`,
+        64: `${actionIconDirectory}icon64${suffix}.png`,
       },
     });
     console.log(`Icon updated: ${enabled ? 'enabled' : 'disabled'}`);
@@ -33,16 +39,12 @@ async function updateIcon(enabled) {
   }
 }
 
-/**
- * Initialize icon state from storage
- */
 async function initializeIcon() {
   try {
     const storage = await storageGet({ enabled: true });
     await updateIcon(storage.enabled);
   } catch (error) {
     console.error('Failed to initialize icon:', error);
-    // Default to enabled if storage read fails
     await updateIcon(true);
   }
 }
