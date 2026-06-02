@@ -18,33 +18,47 @@ Firefox-specific content bridge for page-context playback control.
 - Optional remembered playback speed across refreshes and sessions.
 - Custom controller CSS.
 
-## Build and Load in Firefox
+## Source Submission
 
-```sh
-npm ci
-npm run build
-```
+Mozilla asked for source submission with exact build instructions, tool
+versions, and a script that performs the technical setup steps. This repo
+includes that path.
 
-Then open `about:debugging#/runtime/this-firefox`, choose **Load Temporary
-Add-on**, and select either:
+Required environment:
 
-- `manifest.json` in the repository root
-- `dist/manifest.json`
+- Operating system: Linux, macOS, or Windows
+- Node.js: `22.13.0` or newer
+- npm: the version bundled with that Node.js install, or newer
+- Optional for Mozilla validation: Nix with the `web-ext` tool from
+  `nix develop`
 
-The root manifest points at the built files in `dist/`; the build also writes a
-standalone manifest inside `dist/`.
+Step-by-step build:
+
+1. Install Node.js 22.13.0 or newer and confirm `node --version` and
+   `npm --version`.
+2. Run the setup script:
+   ```sh
+   npm run source:setup
+   ```
+3. For Mozilla review validation, run:
+   ```sh
+   nix develop --command web-ext lint --source-dir=dist
+   ```
+4. Load `manifest.json` or `dist/manifest.json` from
+   `about:debugging#/runtime/this-firefox` for local Firefox testing.
+
+The root manifest points at the built files in `dist/`, and the build also
+writes a standalone `dist/manifest.json`.
 
 ## Validation
 
-```sh
-npm run lint
-npm run build:release
-node tests/e2e/validate-extension.js
-nix develop --command web-ext lint --source-dir=dist
-npm test
-```
+The CI pipeline runs the same checks through the Nix dev shell:
 
-The CI pipeline runs these same checks through the Nix dev shell.
+- `npm run lint`
+- `npm run build:release`
+- `node tests/e2e/validate-extension.js`
+- `nix develop --command web-ext lint --source-dir=dist`
+- `npm test`
 
 ## Default Keyboard Shortcuts
 
