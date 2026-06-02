@@ -21,7 +21,7 @@ function run(cmd) {
 
 function check(label, condition, message) {
   if (!condition) {
-    console.error(`❌ ${label}: ${message}`);
+    console.error(`${label}: ${message}`);
     process.exit(1);
   }
 }
@@ -85,7 +85,7 @@ async function createRelease() {
     const result = run(
       `gh release create ${tag} ${zipPath} --title "Video Speed Controller ${tag}" --notes-file ${notesFile} --draft`
     );
-    console.log(`✅ Draft release created: ${result}`);
+    console.log(`Draft release created: ${result}`);
     console.log('   Review and publish at the URL above.');
   } finally {
     await fs.remove(notesFile);
@@ -93,6 +93,6 @@ async function createRelease() {
 }
 
 createRelease().catch((err) => {
-  console.error('❌ Release creation failed:', err);
+  console.error('Release creation failed:', err);
   process.exit(1);
 });

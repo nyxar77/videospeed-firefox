@@ -1,6 +1,6 @@
 /**
  * Shared keyboard identity maps used by both:
- * - background.js (service worker context — migration)
+ * - background.js (background context — migration)
  * - constants.js (page context — runtime matching + options page)
  *
  * Pure ES module exports — no window/DOM dependencies.

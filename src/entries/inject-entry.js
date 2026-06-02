@@ -1,6 +1,6 @@
 /**
  * Page context entry point - bundles all VSC modules for injection
- * This runs in the page context with access to page APIs but not chrome.* APIs
+ * This runs in the page context with access to page APIs but not extension APIs.
  * All modules are loaded in dependency order to ensure proper initialization
  */
 

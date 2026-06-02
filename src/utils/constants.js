@@ -2,7 +2,7 @@
  * Constants and default values for Video Speed Controller
  */
 
-// Keyboard identity maps — shared with background.js (service worker context).
+// Keyboard identity maps — shared with background.js (background context).
 // esbuild inlines these into each bundle at build time.
 import {
   PREDEFINED_CODE_MAP,
@@ -89,8 +89,8 @@ meet.google.com`.replace(regStrip, ''),
   };
 
   const SPEED_LIMITS = {
-    MIN: 0.07, // Video min rate per Chromium source
-    MAX: 16, // Maximum playback speed in Chrome per Chromium source
+    MIN: 0.07,
+    MAX: 16,
   };
 
   const CONTROLLER_SIZE_LIMITS = {

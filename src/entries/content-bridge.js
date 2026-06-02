@@ -1,5 +1,5 @@
 /**
- * Content Bridge — ISOLATED world thin bridge for chrome.* API access.
+ * Content Bridge — ISOLATED world thin bridge for extension API access.
  *
  * Runs at document_start. Communicates with inject.js (MAIN world) via
  * CustomEvents on document.documentElement.
@@ -11,6 +11,7 @@
  */
 
 import { isBlacklisted } from '../utils/blacklist.js';
+import { getExtensionApi, storageGet, storageSet } from '../utils/extension-api.js';
 import { matchSiteRule } from '../utils/site-pattern.js';
 
 // Speed limits for page→bridge write validation.
@@ -20,6 +21,7 @@ const SPEED_MAX = 16;
 
 const docEl = document.documentElement;
 let bridgeInitialized = false;
+const extensionApi = getExtensionApi();
 
 async function init() {
   try {
@@ -34,7 +36,7 @@ async function init() {
     }
     bridgeInitialized = true;
 
-    const settings = await chrome.storage.sync.get(null);
+    const settings = await storageGet(null);
 
     const disabled = settings.enabled === false;
     // Legacy blacklist: only checked when siteRules hasn't been initialized yet
@@ -76,7 +78,7 @@ async function init() {
     );
 
     // --- Ongoing: storage change relay + lifecycle ---
-    chrome.storage.onChanged.addListener((changes, namespace) => {
+    extensionApi.storage.onChanged.addListener((changes, namespace) => {
       if (namespace !== 'sync') {
         return;
       }
@@ -103,7 +105,7 @@ async function init() {
     });
 
     // --- Ongoing: popup/background message relay ---
-    chrome.runtime.onMessage.addListener((request) => {
+    extensionApi.runtime.onMessage.addListener((request) => {
       docEl.dispatchEvent(new CustomEvent('VSC_MESSAGE', { detail: request }));
     });
 
@@ -120,7 +122,7 @@ async function init() {
           const speed = data.lastSpeed;
           if (typeof speed === 'number' && Number.isFinite(speed)) {
             const clamped = Math.min(Math.max(speed, SPEED_MIN), SPEED_MAX);
-            chrome.storage.sync.set({ lastSpeed: clamped });
+            storageSet({ lastSpeed: clamped });
           }
         }
       } catch (err) {

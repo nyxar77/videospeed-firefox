@@ -19,12 +19,53 @@ const common = {
   bundle: true,
   sourcemap: isRelease ? false : false, // set true locally if debugging
   minify: isRelease,
-  target: 'chrome114',
+  target: 'firefox121',
   platform: 'browser',
   legalComments: 'none',
   format: 'iife', // preserve side-effects and simple global init without ESM runtime
   define: { 'process.env.NODE_ENV': '"production"' },
 };
+
+function stripDistPrefix(filePath) {
+  return typeof filePath === 'string' ? filePath.replace(/^dist\//, '') : filePath;
+}
+
+function normalizeManifestForDist(manifest) {
+  const normalized = structuredClone(manifest);
+
+  for (const iconSize of Object.keys(normalized.icons || {})) {
+    normalized.icons[iconSize] = stripDistPrefix(normalized.icons[iconSize]);
+  }
+
+  if (Array.isArray(normalized.background?.scripts)) {
+    normalized.background.scripts = normalized.background.scripts.map(stripDistPrefix);
+  }
+
+  if (normalized.options_ui?.page) {
+    normalized.options_ui.page = stripDistPrefix(normalized.options_ui.page);
+  }
+
+  for (const iconSize of Object.keys(normalized.action?.default_icon || {})) {
+    normalized.action.default_icon[iconSize] = stripDistPrefix(
+      normalized.action.default_icon[iconSize]
+    );
+  }
+
+  if (normalized.action?.default_popup) {
+    normalized.action.default_popup = stripDistPrefix(normalized.action.default_popup);
+  }
+
+  for (const contentScript of normalized.content_scripts || []) {
+    if (Array.isArray(contentScript.js)) {
+      contentScript.js = contentScript.js.map(stripDistPrefix);
+    }
+    if (Array.isArray(contentScript.css)) {
+      contentScript.css = contentScript.css.map(stripDistPrefix);
+    }
+  }
+
+  return normalized;
+}
 
 async function copyStaticFiles() {
   const outDir = path.resolve(rootDir, 'dist');
@@ -34,10 +75,12 @@ async function copyStaticFiles() {
     await fs.emptyDir(outDir);
 
     // Inject version from package.json into manifest
-    const manifest = await fs.readJson(path.join(rootDir, 'manifest.json'));
+    const manifest = normalizeManifestForDist(
+      await fs.readJson(path.join(rootDir, 'manifest.json'))
+    );
     manifest.version = pkg.version;
     await fs.writeJson(path.join(outDir, 'manifest.json'), manifest, { spaces: 2 });
-    console.log(`✅ Manifest version set to ${pkg.version}${isRelease ? ' (release)' : ''}`);
+    console.log(`Manifest version set to ${pkg.version}${isRelease ? ' (release)' : ''}`);
 
     // Paths to copy
     const pathsToCopy = {
@@ -57,9 +100,9 @@ async function copyStaticFiles() {
       });
     }
 
-    console.log('✅ Static files copied');
+    console.log('Static files copied');
   } catch (error) {
-    console.error('❌ Error copying static files:', error);
+    console.error('Error copying static files:', error);
     process.exit(1);
   }
 }
@@ -83,13 +126,13 @@ async function build() {
     if (isWatch) {
       const ctx = await esbuild.context(esbuildConfig);
       await ctx.watch();
-      console.log('🔧 Watching for changes...');
+      console.log('Watching for changes...');
     } else {
       await esbuild.build(esbuildConfig);
-      console.log('✅ Build complete');
+      console.log('Build complete');
     }
   } catch (error) {
-    console.error('❌ Build failed:', error);
+    console.error('Build failed:', error);
     process.exit(1);
   }
 }

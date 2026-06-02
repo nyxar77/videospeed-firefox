@@ -14,12 +14,12 @@ const releaseDir = path.join(rootDir, 'release');
 const zipName = `videospeed-${pkg.version}.zip`;
 const zipPath = path.join(releaseDir, zipName);
 
-const CWS_SIZE_LIMIT = 128 * 1024 * 1024; // 128 MB
+const AMO_SIZE_GUIDE = 200 * 1024 * 1024; // Conservative package size guide
 
 async function packageRelease() {
   // Verify dist exists
   if (!(await fs.pathExists(distDir))) {
-    console.error('❌ dist/ directory not found. Run "npm run build:release" first.');
+    console.error('dist/ directory not found. Run "npm run build:release" first.');
     process.exit(1);
   }
 
@@ -27,7 +27,7 @@ async function packageRelease() {
   const manifest = await fs.readJson(path.join(distDir, 'manifest.json'));
   if (manifest.version !== pkg.version) {
     console.error(
-      `❌ Version mismatch: manifest.json has ${manifest.version}, package.json has ${pkg.version}`
+      `Version mismatch: manifest.json has ${manifest.version}, package.json has ${pkg.version}`
     );
     process.exit(1);
   }
@@ -58,14 +58,14 @@ async function packageRelease() {
   const stats = await fs.stat(zipPath);
   const sizeMB = (stats.size / (1024 * 1024)).toFixed(2);
 
-  if (stats.size > CWS_SIZE_LIMIT) {
-    console.warn(`⚠️  Warning: ${zipName} is ${sizeMB} MB (Chrome Web Store limit is 128 MB)`);
+  if (stats.size > AMO_SIZE_GUIDE) {
+    console.warn(`Warning: ${zipName} is ${sizeMB} MB. Review the package before submitting.`);
   }
 
-  console.log(`✅ Packaged ${zipName} (${sizeMB} MB) → release/`);
+  console.log(`Packaged ${zipName} (${sizeMB} MB) in release/`);
 }
 
 packageRelease().catch((err) => {
-  console.error('❌ Packaging failed:', err);
+  console.error('Packaging failed:', err);
   process.exit(1);
 });

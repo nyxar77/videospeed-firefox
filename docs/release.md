@@ -30,7 +30,7 @@ git push origin main --tags
 npm run release:github
 
 # 5. Review the draft on GitHub, then publish
-# 6. Upload release/videospeed-*.zip to the Chrome Web Store
+# 6. Upload release/videospeed-*.zip to Mozilla Add-ons
 ```
 
 ## What `npm run release` does
@@ -40,7 +40,7 @@ npm run release:github
 3. **`package-release.js`** -- creates `release/videospeed-{version}.zip`:
    - Validates manifest version matches `package.json`
    - Excludes source maps and `.DS_Store`
-   - Warns if the zip exceeds the Chrome Web Store 128 MB limit
+   - Warns if the zip is unusually large and should be reviewed before submission
 
 ## What `npm run release:github` does
 

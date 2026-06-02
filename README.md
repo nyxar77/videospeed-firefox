@@ -1,9 +1,7 @@
-# [Install from Chrome Web Store][chrome-web-store-link]
-
-[![Chrome Web Store][chrome-web-store-version]][chrome-web-store-link] [![Chrome Web Store Users][chrome-web-store-users-badge]][chrome-web-store-link] [![Chrome Web Store Users][chrome-web-store-stars]][chrome-web-store-link]  
+# Video Speed Controller for Firefox
 
 **Video Speed Controller** gives you fine-grained control over any HTML5 video
-or audio element, on any site.
+or audio element, on any site. This fork targets Firefox WebExtensions.
 
 ## The science of accelerated playback
 
@@ -24,7 +22,6 @@ means higher engagement. With practice, many settle at 2x or above and find it
 HTML5 media elements expose a native playback rate API, but most players hide
 or artificially limit it. Speed adjustments should be effortless and frequent:
 we don't read at a fixed pace, and we shouldn't watch at one either.
-
 
 ## Features
 
@@ -47,6 +44,21 @@ we don't read at a fixed pace, and we shouldn't watch at one either.
 - **Custom controller CSS** - style or reposition the overlay with your own
   CSS rules.
 
+## Build and Load in Firefox
+
+Run the build before loading the extension. The root manifest points at the
+bundled files in `dist/`, and the build also writes a standalone
+`dist/manifest.json`.
+
+```sh
+npm install
+npm run build
+```
+
+Then open `about:debugging#/runtime/this-firefox`, choose **Load Temporary
+Add-on**, and select either `manifest.json` in the repository root or
+`dist/manifest.json`.
+
 ## Default keyboard shortcuts
 
 - **S** - decrease playback speed
@@ -68,11 +80,3 @@ for them to take effect.
 ## License
 
 (MIT License) - Copyright (c) 2014 Ilya Grigorik
-
-[chrome-web-store-version]: https://img.shields.io/chrome-web-store/v/nffaoalbilbmmfgbnbgppjihopabppdk?label=Chrome%20Web%20Store
-[chrome-web-store-users-badge]: https://img.shields.io/chrome-web-store/users/nffaoalbilbmmfgbnbgppjihopabppdk
-[chrome-web-store-stars]: https://img.shields.io/chrome-web-store/stars/nffaoalbilbmmfgbnbgppjihopabppdk
-[github-release-badge]: https://img.shields.io/github/v/release/igrigorik/videospeed
-
-[chrome-web-store-link]: https://chromewebstore.google.com/detail/video-speed-controller/nffaoalbilbmmfgbnbgppjihopabppdk
-[github-release-link]: https://github.com/igrigorik/videospeed/releases

@@ -66,7 +66,7 @@ if (!window.VSC.VideoSpeedConfig) {
     }
 
     /**
-     * Load settings from Chrome storage or pre-injected settings
+     * Load settings from extension storage or pre-injected settings
      * @returns {Promise<Object>} Loaded settings
      */
     async load() {
@@ -182,19 +182,19 @@ if (!window.VSC.VideoSpeedConfig) {
     }
 
     /**
-     * Save settings to Chrome storage
+     * Save settings to extension storage
      *
      * IMPORTANT: Only the keys present in newSettings are written to storage.
      * This avoids the "stale full-blob write" race condition where two contexts
      * (e.g. options page + content script) each hold their own in-memory copy
-     * and overwrite each other's changes.  chrome.storage.sync.set({key: val})
+     * and overwrite each other's changes. storage.sync.set({key: val})
      * atomically merges — it updates only the supplied keys and leaves the
      * rest untouched.
      *
      * In-memory settings are updated immediately regardless of persistence
      * outcome — the current session should always reflect the user's intent.
      * Returns false only when the storage write observably fails (options page
-     * context with direct chrome.storage access). In page context, the
+     * context with direct extension storage access). In page context, the
      * postMessage bridge is fire-and-forget so failures are invisible here.
      *
      * @param {Object} newSettings - Settings to save (only these keys are written)

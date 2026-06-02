@@ -1,3 +1,11 @@
+import {
+  openOptionsPage,
+  storageGet,
+  storageSet,
+  tabsQuery,
+  tabsSendMessage,
+} from '../../utils/extension-api.js';
+
 // Message type constants
 const MessageTypes = {
   SET_SPEED: 'VSC_SET_SPEED',
@@ -12,7 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Settings button event listener
   document.querySelector('#config').addEventListener('click', () => {
-    chrome.runtime.openOptionsPage();
+    openOptionsPage();
   });
 
   // Power button toggle event listener
@@ -23,22 +31,19 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Initialize enabled state
-  chrome.storage.sync.get({ enabled: true }, (storage) => {
+  storageGet({ enabled: true }).then((storage) => {
     toggleEnabledUI(storage.enabled);
   });
 
   function toggleEnabled(enabled, callback) {
-    chrome.storage.sync.set(
-      {
-        enabled: enabled,
-      },
-      () => {
-        toggleEnabledUI(enabled);
-        if (callback) {
-          callback(enabled);
-        }
+    storageSet({
+      enabled: enabled,
+    }).then(() => {
+      toggleEnabledUI(enabled);
+      if (callback) {
+        callback(enabled);
       }
-    );
+    });
   }
 
   function toggleEnabledUI(enabled) {
@@ -59,9 +64,15 @@ document.addEventListener('DOMContentLoaded', () => {
     status_element.innerText = str;
   }
 
+  function clearStatusMessage() {
+    const statusElement = document.querySelector('#status');
+    statusElement.classList.toggle('hide', true);
+    statusElement.innerText = '';
+  }
+
   // Load settings and initialize UI
   function loadSettingsAndInitialize() {
-    chrome.storage.sync.get(null, (storage) => {
+    storageGet(null).then((storage) => {
       // Find the step values from keyBindings
       let slowerStep = 0.1;
       let fasterStep = 0.1;
@@ -141,25 +152,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  function setSpeed(speed) {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, {
-          type: MessageTypes.SET_SPEED,
-          payload: { speed: speed },
-        });
+  async function sendActiveTabMessage(message) {
+    try {
+      const tabs = await tabsQuery({ active: true, currentWindow: true });
+      const tab = tabs[0];
+      if (!tab?.id) {
+        setStatusMessage('No active tab.');
+        return false;
       }
+
+      await tabsSendMessage(tab.id, message);
+      clearStatusMessage();
+      return true;
+    } catch (error) {
+      setStatusMessage('Reload page to activate.');
+      console.warn('[VSC] Could not message active tab:', error);
+      return false;
+    }
+  }
+
+  function setSpeed(speed) {
+    sendActiveTabMessage({
+      type: MessageTypes.SET_SPEED,
+      payload: { speed: speed },
     });
   }
 
   function adjustSpeed(delta) {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, {
-          type: MessageTypes.ADJUST_SPEED,
-          payload: { delta: delta },
-        });
-      }
+    sendActiveTabMessage({
+      type: MessageTypes.ADJUST_SPEED,
+      payload: { delta: delta },
     });
   }
 });

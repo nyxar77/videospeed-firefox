@@ -15,7 +15,7 @@ class DebugHelper {
    */
   enable() {
     this.isActive = true;
-    console.log('🐛 VSC Debug Mode Enabled');
+    console.log('VSC debug mode enabled');
 
     // Override logger to be more verbose
     if (window.VSC.logger && window.VSC.Constants.LOG_LEVELS) {
@@ -34,7 +34,7 @@ class DebugHelper {
     };
 
     console.log(
-      '🔧 Debug functions available: vscDebug.checkMedia(), vscDebug.checkControllers(), vscDebug.testPopup(), vscDebug.testBridge(), vscDebug.forceShow(), vscDebug.forceShowAudio()'
+      'Debug functions available: vscDebug.checkMedia(), vscDebug.checkControllers(), vscDebug.testPopup(), vscDebug.testBridge(), vscDebug.forceShow(), vscDebug.forceShowAudio()'
     );
   }
 
@@ -42,7 +42,7 @@ class DebugHelper {
    * Check all media elements and their detection status
    */
   checkMediaElements() {
-    console.group('🎵 Media Elements Analysis');
+    console.group('Media Elements Analysis');
 
     // Check basic video/audio elements
     const videos = document.querySelectorAll('video');
@@ -100,7 +100,7 @@ class DebugHelper {
    * Check shadow DOM for hidden media elements
    */
   checkShadowDOMMedia() {
-    console.group('👻 Shadow DOM Media Check');
+    console.group('Shadow DOM Media Check');
 
     let shadowMediaCount = 0;
     const checkElement = (element) => {
@@ -128,7 +128,7 @@ class DebugHelper {
    * Check all controllers and their visibility status
    */
   checkControllers() {
-    console.group('🎮 Controllers Analysis');
+    console.group('Controllers Analysis');
 
     const controllers = document.querySelectorAll('vsc-controller');
     console.log(`Found ${controllers.length} VSC controllers`);
@@ -177,7 +177,7 @@ class DebugHelper {
         console.log('Associated media:', associatedVideo);
         console.log('Media visibility would be:', this.getElementVisibility(associatedVideo));
       } else {
-        console.log('⚠️ No associated media found');
+        console.log('No associated media found');
       }
 
       console.groupEnd();
@@ -190,13 +190,16 @@ class DebugHelper {
    * Test popup communication
    */
   testPopupCommunication() {
-    console.group('📡 Popup Communication Test');
+    console.group('Popup Communication Test');
 
     // Test if message bridge is working
-    if (typeof chrome !== 'undefined' && chrome.runtime) {
-      console.log('✅ Chrome runtime available');
+    if (
+      (typeof browser !== 'undefined' && browser.runtime) ||
+      (typeof chrome !== 'undefined' && chrome.runtime)
+    ) {
+      console.log('Extension runtime available');
     } else {
-      console.log('ℹ️ Chrome runtime not available (expected in page context)');
+      console.log('Extension runtime not available (expected in page context)');
     }
 
     // Test direct VSC message handling
@@ -217,7 +220,7 @@ class DebugHelper {
 
     // Test simulated popup messages directly
     if (window.VSC_controller && window.VSC_controller.actionHandler) {
-      console.log('✅ Action handler available, testing speed controls...');
+      console.log('Action handler available, testing speed controls...');
 
       // Test speed adjustment
       const testSpeed = 1.5;
@@ -245,7 +248,7 @@ class DebugHelper {
         });
       }, 2000);
     } else {
-      console.log('❌ Action handler not available');
+      console.log('Action handler not available');
     }
 
     console.groupEnd();
@@ -255,7 +258,7 @@ class DebugHelper {
    * Test the complete popup message bridge by simulating the message flow
    */
   testPopupMessageBridge() {
-    console.group('📡 Testing Complete Popup Message Bridge');
+    console.group('Testing Complete Popup Message Bridge');
 
     // Test if we can simulate the exact message flow from popup → content script → page context
     const testMessages = [
@@ -268,7 +271,7 @@ class DebugHelper {
 
     testMessages.forEach((message, index) => {
       setTimeout(() => {
-        console.log(`🔧 Debug: Simulating popup message ${index + 1}:`, message);
+        console.log(`Debug: Simulating popup message ${index + 1}:`, message);
 
         // Dispatch the same event that content script would dispatch
         window.dispatchEvent(
@@ -287,7 +290,7 @@ class DebugHelper {
    * Force show all controllers for debugging
    */
   forceShowControllers() {
-    console.log('🔧 Force showing all controllers');
+    console.log('Force showing all controllers');
 
     const controllers = document.querySelectorAll('vsc-controller');
     controllers.forEach((controller, index) => {
@@ -305,7 +308,7 @@ class DebugHelper {
    * Force show audio controllers specifically
    */
   forceShowAudioControllers() {
-    console.log('🔊 Force showing audio controllers');
+    console.log('Force showing audio controllers');
 
     const audioElements = document.querySelectorAll('audio');
     let controllersShown = 0;
@@ -356,7 +359,7 @@ class DebugHelper {
    * Monitor controller visibility changes
    */
   monitorControllerChanges() {
-    console.log('👀 Starting controller visibility monitoring');
+    console.log('Starting controller visibility monitoring');
 
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
@@ -366,7 +369,7 @@ class DebugHelper {
         ) {
           const target = mutation.target;
           if (target.tagName === 'VSC-CONTROLLER') {
-            console.log('🔄 Controller visibility changed:', {
+            console.log('Controller visibility changed:', {
               element: target,
               classes: target.className,
               hidden: target.classList.contains('vsc-hidden'),

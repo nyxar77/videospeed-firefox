@@ -742,7 +742,7 @@ async function save_options() {
       return;
     }
 
-    // Byte-length guard for chrome.storage.sync (8KB per-item limit)
+    // Byte-length guard for storage.sync per-item limits.
     const cssByteSize = new Blob([customCSS]).size;
     if (cssByteSize > 8192) {
       status.textContent = `Error: Controller CSS exceeds 8KB storage limit (${Math.round(cssByteSize / 1024)}KB). Reduce CSS size.`;

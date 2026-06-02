@@ -1,17 +1,27 @@
+import {
+  getExtensionApi,
+  storageClear,
+  storageGet,
+  storageRemove,
+  storageSet,
+} from '../utils/extension-api.js';
+
 /**
- * Chrome storage management utilities.
+ * WebExtension storage management utilities.
  *
- * Context-aware: uses chrome.storage.sync when available (extension contexts),
- * falls back to CustomEvent bridge with content-bridge.js (MAIN world).
+ * Context-aware: uses extension storage when available, falls back to the
+ * CustomEvent bridge with content-bridge.js in the MAIN world.
  */
 
 window.VSC = window.VSC || {};
 
+function hasExtensionStorage() {
+  const api = getExtensionApi();
+  return !!api?.storage?.sync;
+}
+
 if (!window.VSC.StorageManager) {
   const docEl = document.documentElement;
-
-  /** True when chrome.storage.sync is available (extension contexts). */
-  const hasChrome = typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync;
 
   class StorageManager {
     static errorCallback = null;
@@ -29,16 +39,13 @@ if (!window.VSC.StorageManager) {
      * @returns {Promise<Object>} Storage data
      */
     static async get(defaults = {}) {
-      if (hasChrome) {
-        return new Promise((resolve) => {
-          chrome.storage.sync.get(defaults, (storage) => {
-            window.VSC.logger?.debug?.('StorageManager: settings from chrome.storage');
-            resolve(storage);
-          });
-        });
+      if (hasExtensionStorage()) {
+        const storage = await storageGet(defaults);
+        window.VSC.logger?.debug?.('StorageManager: settings from extension storage');
+        return storage;
       }
 
-      // No chrome.storage — request settings from bridge via CustomEvent
+      // No extension storage — request settings from bridge via CustomEvent
       return new Promise((resolve) => {
         const onReady = (e) => {
           docEl.removeEventListener('VSC_SETTINGS_READY', onReady);
@@ -80,27 +87,22 @@ if (!window.VSC.StorageManager) {
      * @returns {Promise<void>}
      */
     static async set(data) {
-      if (hasChrome) {
-        return new Promise((resolve, reject) => {
-          chrome.storage.sync.set(data, () => {
-            if (chrome.runtime.lastError) {
-              const error = new Error(`Storage failed: ${chrome.runtime.lastError.message}`);
-              window.VSC.logger?.error?.(
-                `Chrome storage save failed: ${chrome.runtime.lastError.message}`
-              );
-              if (this.errorCallback) {
-                this.errorCallback(error, data);
-              }
-              reject(error);
-              return;
-            }
-            window.VSC.logger?.debug?.('StorageManager: saved to chrome.storage');
-            resolve();
-          });
-        });
+      if (hasExtensionStorage()) {
+        try {
+          await storageSet(data);
+          window.VSC.logger?.debug?.('StorageManager: saved to extension storage');
+          return;
+        } catch (error) {
+          const wrapped = new Error(`Storage failed: ${error.message}`);
+          window.VSC.logger?.error?.(`Extension storage save failed: ${error.message}`);
+          if (this.errorCallback) {
+            this.errorCallback(wrapped, data);
+          }
+          throw wrapped;
+        }
       }
 
-      // Only lastSpeed can cross the trust boundary to chrome.storage
+      // Only lastSpeed can cross the trust boundary to extension storage
       const keys = Object.keys(data);
       if (keys.length === 1 && keys[0] === 'lastSpeed') {
         const speed = data.lastSpeed;
@@ -128,25 +130,20 @@ if (!window.VSC.StorageManager) {
      * @returns {Promise<void>}
      */
     static async remove(keys) {
-      if (hasChrome) {
-        return new Promise((resolve, reject) => {
-          chrome.storage.sync.remove(keys, () => {
-            if (chrome.runtime.lastError) {
-              const error = new Error(`Storage remove failed: ${chrome.runtime.lastError.message}`);
-              window.VSC.logger?.error?.(
-                `Chrome storage remove failed: ${chrome.runtime.lastError.message}`
-              );
-              if (this.errorCallback) {
-                this.errorCallback(error, { removedKeys: keys });
-              }
-              reject(error);
-              return;
-            }
-            resolve();
-          });
-        });
+      if (hasExtensionStorage()) {
+        try {
+          await storageRemove(keys);
+          return;
+        } catch (error) {
+          const wrapped = new Error(`Storage remove failed: ${error.message}`);
+          window.VSC.logger?.error?.(`Extension storage remove failed: ${error.message}`);
+          if (this.errorCallback) {
+            this.errorCallback(wrapped, { removedKeys: keys });
+          }
+          throw wrapped;
+        }
       }
-      // No chrome.storage — update local cache only
+      // No extension storage — update local cache only
       if (window.VSC_settings) {
         keys.forEach((key) => delete window.VSC_settings[key]);
       }
@@ -158,34 +155,29 @@ if (!window.VSC.StorageManager) {
      * @returns {Promise<void>}
      */
     static async clear() {
-      if (hasChrome) {
-        return new Promise((resolve, reject) => {
-          chrome.storage.sync.clear(() => {
-            if (chrome.runtime.lastError) {
-              const error = new Error(`Storage clear failed: ${chrome.runtime.lastError.message}`);
-              window.VSC.logger?.error?.(
-                `Chrome storage clear failed: ${chrome.runtime.lastError.message}`
-              );
-              if (this.errorCallback) {
-                this.errorCallback(error, { operation: 'clear' });
-              }
-              reject(error);
-              return;
-            }
-            resolve();
-          });
-        });
+      if (hasExtensionStorage()) {
+        try {
+          await storageClear();
+          return;
+        } catch (error) {
+          const wrapped = new Error(`Storage clear failed: ${error.message}`);
+          window.VSC.logger?.error?.(`Extension storage clear failed: ${error.message}`);
+          if (this.errorCallback) {
+            this.errorCallback(wrapped, { operation: 'clear' });
+          }
+          throw wrapped;
+        }
       }
       window.VSC_settings = {};
       return Promise.resolve();
     }
 
     /**
-     * @param {Function} callback - Callback with changes in chrome.storage.onChanged format
+     * @param {Function} callback - Callback with changes in storage.onChanged format
      */
     static onChanged(callback) {
-      if (hasChrome) {
-        chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (hasExtensionStorage()) {
+        getExtensionApi().storage.onChanged.addListener((changes, areaName) => {
           if (areaName === 'sync') {
             callback(changes);
           }
