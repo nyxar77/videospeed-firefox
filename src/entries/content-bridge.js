@@ -23,6 +23,21 @@ const docEl = document.documentElement;
 let bridgeInitialized = false;
 const extensionApi = getExtensionApi();
 
+function cloneDetailForPage(detail) {
+  try {
+    if (typeof globalThis.cloneInto === 'function') {
+      return globalThis.cloneInto(detail, window, { cloneFunctions: false });
+    }
+  } catch (error) {
+    console.warn('[VSC] Failed to clone event detail for page:', error);
+  }
+  return detail;
+}
+
+function dispatchToPage(type, detail) {
+  docEl.dispatchEvent(new CustomEvent(type, { detail: cloneDetailForPage(detail) }));
+}
+
 async function init() {
   try {
     // Skip about:blank frames — they share the parent window
@@ -54,7 +69,7 @@ async function init() {
       docEl.addEventListener(
         'VSC_REQUEST_SETTINGS',
         () => {
-          docEl.dispatchEvent(new CustomEvent('VSC_SETTINGS_READY', { detail: { abort: true } }));
+          dispatchToPage('VSC_SETTINGS_READY', { abort: true });
         },
         { once: true }
       );
@@ -72,14 +87,14 @@ async function init() {
     docEl.addEventListener(
       'VSC_REQUEST_SETTINGS',
       () => {
-        docEl.dispatchEvent(new CustomEvent('VSC_SETTINGS_READY', { detail: settingsPayload }));
+        dispatchToPage('VSC_SETTINGS_READY', settingsPayload);
       },
       { once: true }
     );
 
     // --- Ongoing: storage change relay + lifecycle ---
     extensionApi.storage.onChanged.addListener((changes, namespace) => {
-      if (namespace !== 'sync') {
+      if (namespace !== 'sync' && namespace !== 'local') {
         return;
       }
 
@@ -88,11 +103,11 @@ async function init() {
       // lifecycle — it only relays settings via VSC_STORAGE_CHANGED below.
       // siteRules/blacklist changes take effect on next page load.
       if (changes.enabled?.newValue === false) {
-        docEl.dispatchEvent(new CustomEvent('VSC_MESSAGE', { detail: { type: 'VSC_TEARDOWN' } }));
+        dispatchToPage('VSC_MESSAGE', { type: 'VSC_TEARDOWN' });
         return;
       }
       if (changes.enabled?.oldValue === false && changes.enabled?.newValue !== false) {
-        docEl.dispatchEvent(new CustomEvent('VSC_MESSAGE', { detail: { type: 'VSC_REINIT' } }));
+        dispatchToPage('VSC_MESSAGE', { type: 'VSC_REINIT' });
       }
 
       // Relay changes to MAIN world (filter out keys MAIN never received)
@@ -100,13 +115,13 @@ async function init() {
       delete relayChanges.enabled;
       delete relayChanges.blacklist;
       if (Object.keys(relayChanges).length > 0) {
-        docEl.dispatchEvent(new CustomEvent('VSC_STORAGE_CHANGED', { detail: relayChanges }));
+        dispatchToPage('VSC_STORAGE_CHANGED', relayChanges);
       }
     });
 
     // --- Ongoing: popup/background message relay ---
     extensionApi.runtime.onMessage.addListener((request) => {
-      docEl.dispatchEvent(new CustomEvent('VSC_MESSAGE', { detail: request }));
+      dispatchToPage('VSC_MESSAGE', request);
     });
 
     // --- Ongoing: speed write-back from MAIN world ---

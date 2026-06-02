@@ -6,6 +6,15 @@ function usingBrowserPromises() {
   return !!globalThis.browser && currentApi() === globalThis.browser;
 }
 
+function preferredStorageArea(api) {
+  // Firefox temporary add-ons do not have a stable signed add-on identity.
+  // storage.local is the reliable persistence layer for local Firefox loads.
+  if (usingBrowserPromises() && api.storage.local) {
+    return api.storage.local;
+  }
+  return api.storage.sync || api.storage.local;
+}
+
 function lastError() {
   return globalThis.chrome?.runtime?.lastError || null;
 }
@@ -29,34 +38,38 @@ export function getExtensionApi() {
 
 export function storageGet(keys) {
   const api = currentApi();
+  const storage = preferredStorageArea(api);
   if (usingBrowserPromises()) {
-    return api.storage.sync.get(keys);
+    return storage.get(keys);
   }
-  return callbackCall(api.storage.sync.get.bind(api.storage.sync), [keys]);
+  return callbackCall(storage.get.bind(storage), [keys]);
 }
 
 export function storageSet(items) {
   const api = currentApi();
+  const storage = preferredStorageArea(api);
   if (usingBrowserPromises()) {
-    return api.storage.sync.set(items);
+    return storage.set(items);
   }
-  return callbackCall(api.storage.sync.set.bind(api.storage.sync), [items]);
+  return callbackCall(storage.set.bind(storage), [items]);
 }
 
 export function storageRemove(keys) {
   const api = currentApi();
+  const storage = preferredStorageArea(api);
   if (usingBrowserPromises()) {
-    return api.storage.sync.remove(keys);
+    return storage.remove(keys);
   }
-  return callbackCall(api.storage.sync.remove.bind(api.storage.sync), [keys]);
+  return callbackCall(storage.remove.bind(storage), [keys]);
 }
 
 export function storageClear() {
   const api = currentApi();
+  const storage = preferredStorageArea(api);
   if (usingBrowserPromises()) {
-    return api.storage.sync.clear();
+    return storage.clear();
   }
-  return callbackCall(api.storage.sync.clear.bind(api.storage.sync));
+  return callbackCall(storage.clear.bind(storage));
 }
 
 export function tabsQuery(queryInfo) {

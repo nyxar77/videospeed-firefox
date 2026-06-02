@@ -2,37 +2,60 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [master, main]
   pull_request:
-    branches: [master]
+    branches: [master, main]
 
 jobs:
   build-and-test:
     name: Lint, Build, Test
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [22.x]
 
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: npm
+      - name: Check out repository
+        uses: actions/checkout@v6
 
-      - run: npm ci
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+
+      - name: Cache npm downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            npm-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: nix develop --command npm ci
         env:
           PUPPETEER_SKIP_DOWNLOAD: '1'
-      - run: npm audit --audit-level=high
-      - run: npm run lint
-      - run: npm run build:release
-      - run: npm test
-      - run: node scripts/package-release.js
 
-      - uses: actions/upload-artifact@v7
+      - name: Audit dependencies
+        run: nix develop --command npm audit --audit-level=high
+
+      - name: Lint source
+        run: nix develop --command npm run lint
+
+      - name: Build release extension
+        run: nix develop --command npm run build:release
+
+      - name: Validate extension structure
+        run: nix develop --command node tests/e2e/validate-extension.js
+
+      - name: Validate Firefox add-on
+        run: nix develop --command web-ext lint --source-dir=dist
+
+      - name: Run tests
+        run: nix develop --command npm test
+
+      - name: Package release zip
+        run: nix develop --command node scripts/package-release.js
+
+      - name: Upload release artifact
+        uses: actions/upload-artifact@v7
         if: always()
         with:
-          name: videospeed-release-node-${{ matrix.node-version }}
+          name: videospeed-firefox-release
           path: release/videospeed-*.zip
           retention-days: 7

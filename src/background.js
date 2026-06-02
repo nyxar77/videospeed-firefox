@@ -7,6 +7,7 @@ import {
 } from './utils/extension-api.js';
 
 const extensionApi = getExtensionApi();
+const assetPathPrefix = globalThis.location?.pathname?.includes('/dist/') ? 'dist/' : '';
 
 /**
  * Update extension icon based on enabled state
@@ -17,9 +18,9 @@ async function updateIcon(enabled) {
     const suffix = enabled ? '' : '_disabled';
     await actionSetIcon({
       path: {
-        19: `assets/icons/icon19${suffix}.png`,
-        38: `assets/icons/icon38${suffix}.png`,
-        48: `assets/icons/icon48${suffix}.png`,
+        19: `${assetPathPrefix}assets/icons/icon19${suffix}.png`,
+        38: `${assetPathPrefix}assets/icons/icon38${suffix}.png`,
+        48: `${assetPathPrefix}assets/icons/icon48${suffix}.png`,
       },
     });
     console.log(`Icon updated: ${enabled ? 'enabled' : 'disabled'}`);
@@ -203,7 +204,7 @@ async function migrateKeyBindingsV2() {
  * Listen for storage changes (extension enabled/disabled)
  */
 extensionApi.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'sync' && changes.enabled) {
+  if ((namespace === 'sync' || namespace === 'local') && changes.enabled) {
     updateIcon(changes.enabled.newValue !== false);
   }
 });

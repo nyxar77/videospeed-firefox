@@ -19,52 +19,42 @@ window.VSC = window.VSC || {};
 
 let keyBindings = [];
 
-/**
- * Lightweight CSS syntax highlighter for the controller CSS editor.
- * Returns HTML with spans wrapping comments, selectors, properties,
- * values, and braces. Designed for the transparent-textarea overlay
- * pattern — the textarea handles editing, this colors the <pre> behind it.
- */
-function highlightCSS(text) {
-  const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+function appendHighlightToken(parent, className, text) {
+  const span = document.createElement('span');
+  span.className = className;
+  span.textContent = text;
+  parent.appendChild(span);
+}
 
-  // Tokenize: pull out comments first, then process the rest
-  let result = '';
-  let pos = 0;
+function appendHighlightedCSS(parent, text) {
+  const tokenPattern = /\/\*[\s\S]*?(?:\*\/|$)|[{}]|([\w-]+)(?=\s*:)|:\s*([^;{}]+)(;?)/g;
+  let lastIndex = 0;
 
-  while (pos < escaped.length) {
-    // Comments
-    const commentStart = escaped.indexOf('/*', pos);
-    if (commentStart === pos) {
-      const commentEnd = escaped.indexOf('*/', pos + 2);
-      const end = commentEnd === -1 ? escaped.length : commentEnd + 2;
-      result += `<span class="css-comment">${escaped.slice(pos, end)}</span>`;
-      pos = end;
-      continue;
+  for (const match of text.matchAll(tokenPattern)) {
+    if (match.index > lastIndex) {
+      parent.appendChild(document.createTextNode(text.slice(lastIndex, match.index)));
     }
 
-    // Find next comment to know where to stop
-    const nextComment = commentStart === -1 ? escaped.length : commentStart;
+    if (match[0].startsWith('/*')) {
+      appendHighlightToken(parent, 'css-comment', match[0]);
+    } else if (match[0] === '{' || match[0] === '}') {
+      appendHighlightToken(parent, 'css-brace', match[0]);
+    } else if (match[1]) {
+      appendHighlightToken(parent, 'css-property', match[0]);
+    } else if (match[2] !== undefined) {
+      parent.appendChild(document.createTextNode(': '));
+      appendHighlightToken(parent, 'css-value', match[2]);
+      if (match[3]) {
+        parent.appendChild(document.createTextNode(match[3]));
+      }
+    }
 
-    // Process non-comment chunk
-    const chunk = escaped.slice(pos, nextComment);
-    result += chunk
-      // Braces
-      .replace(/([{}])/g, '<span class="css-brace">$1</span>')
-      // Properties (word-chars before colon, inside a block)
-      .replace(/([\w-]+)\s*(?=:)/g, '<span class="css-property">$1</span>')
-      // Values (after colon, before semicolon or closing brace)
-      .replace(/:\s*([^;{}]+)(;)/g, ': <span class="css-value">$1</span>$2')
-      // Selectors (text before opening brace, not already wrapped)
-      .replace(
-        /([^{}><\n][^{}<>]*?)(\s*<span class="css-brace">\{)/g,
-        '<span class="css-selector">$1</span>$2'
-      );
-
-    pos = nextComment;
+    lastIndex = match.index + match[0].length;
   }
 
-  return result;
+  if (lastIndex < text.length) {
+    parent.appendChild(document.createTextNode(text.slice(lastIndex)));
+  }
 }
 
 /** Sync textarea content to the highlighted <pre> overlay */
@@ -72,7 +62,8 @@ function updateCSSHighlight() {
   const textarea = document.getElementById('controllerCSS');
   const highlight = document.getElementById('cssHighlight');
   if (textarea && highlight) {
-    highlight.innerHTML = `${highlightCSS(textarea.value)}\n`;
+    highlight.replaceChildren();
+    appendHighlightedCSS(highlight, `${textarea.value}\n`);
   }
 }
 
@@ -830,7 +821,7 @@ async function restore_options() {
 
     // Clear existing shortcut rows (handles restore_defaults re-render)
     const shortcutsContainer = document.getElementById('shortcuts-container');
-    shortcutsContainer.innerHTML = '';
+    shortcutsContainer.replaceChildren();
 
     for (const item of bindings) {
       if (item.predefined) {

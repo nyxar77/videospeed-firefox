@@ -17,7 +17,7 @@ window.VSC = window.VSC || {};
 
 function hasExtensionStorage() {
   const api = getExtensionApi();
-  return !!api?.storage?.sync;
+  return !!(api?.storage?.sync || api?.storage?.local);
 }
 
 if (!window.VSC.StorageManager) {
@@ -178,7 +178,7 @@ if (!window.VSC.StorageManager) {
     static onChanged(callback) {
       if (hasExtensionStorage()) {
         getExtensionApi().storage.onChanged.addListener((changes, areaName) => {
-          if (areaName === 'sync') {
+          if (areaName === 'sync' || areaName === 'local') {
             callback(changes);
           }
         });

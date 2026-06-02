@@ -360,12 +360,22 @@ describe('content-bridge', () => {
       expect(lifecycle).toHaveLength(0);
     });
 
-    it('ignores non-sync namespace changes', async () => {
+    it('handles local namespace changes for Firefox storage.local', async () => {
       const onChanged = await loadBridge();
       const { events, cleanup } = collectEvents('VSC_MESSAGE', 'VSC_STORAGE_CHANGED');
       eventCleanup = cleanup;
 
       onChanged({ enabled: { oldValue: true, newValue: false } }, 'local');
+      expect(events).toHaveLength(1);
+      expect(events[0].detail.type).toBe('VSC_TEARDOWN');
+    });
+
+    it('ignores unrelated namespace changes', async () => {
+      const onChanged = await loadBridge();
+      const { events, cleanup } = collectEvents('VSC_MESSAGE', 'VSC_STORAGE_CHANGED');
+      eventCleanup = cleanup;
+
+      onChanged({ enabled: { oldValue: true, newValue: false } }, 'managed');
       expect(events).toHaveLength(0);
     });
   });
