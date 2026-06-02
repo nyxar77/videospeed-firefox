@@ -16,8 +16,13 @@
   },
   "icons": {
     "16": "dist/assets/icons/icon16.png",
+    "24": "dist/assets/icons/icon24.png",
+    "32": "dist/assets/icons/icon32.png",
     "48": "dist/assets/icons/icon48.png",
-    "128": "dist/assets/icons/icon128.png"
+    "64": "dist/assets/icons/icon64.png",
+    "96": "dist/assets/icons/icon96.png",
+    "128": "dist/assets/icons/icon128.png",
+    "256": "dist/assets/icons/icon256.png"
   },
   "permissions": ["storage"],
   "background": {
@@ -29,9 +34,13 @@
   },
   "action": {
     "default_icon": {
+      "16": "dist/assets/icons/icon16.png",
       "19": "dist/assets/icons/icon19.png",
+      "24": "dist/assets/icons/icon24.png",
+      "32": "dist/assets/icons/icon32.png",
       "38": "dist/assets/icons/icon38.png",
-      "48": "dist/assets/icons/icon48.png"
+      "48": "dist/assets/icons/icon48.png",
+      "64": "dist/assets/icons/icon64.png"
     },
     "default_popup": "dist/ui/popup/popup.html"
   },

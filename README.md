@@ -1,65 +1,52 @@
 # Video Speed Controller for Firefox
 
-**Video Speed Controller** gives you fine-grained control over any HTML5 video
-or audio element, on any site. This fork targets Firefox WebExtensions.
+Firefox-focused WebExtension for controlling HTML5 video and audio playback
+speed from an on-page controller, keyboard shortcuts, and the extension popup.
 
-## The science of accelerated playback
-
-**TL;DR** -- faster playback translates to better engagement and retention.
-
-The average adult reads at [250-300 words per minute][wpm-study] (wpm). Speech
-averages ~150 wpm; slide presentations often closer to 100 wpm. Given the
-choice, most viewers [speed up playback to ~1.3-1.5x][ms-study] to close the
-gap. Accelerated viewing [keeps attention longer][byu-study] -- faster delivery
-means higher engagement. With practice, many settle at 2x or above and find it
-[uncomfortable to return to 1x][mit-study].
-
-[wpm-study]: http://www.paperbecause.com/PIOP/files/f7/f7bb6bc5-2c4a-466f-9ae7-b483a2c0dca4.pdf
-[ms-study]: http://research.microsoft.com/en-us/um/redmond/groups/coet/compression/chi99/paper.pdf
-[byu-study]: http://www.enounce.com/docs/BYUPaper020319.pdf
-[mit-study]: http://alumni.media.mit.edu/~barons/html/avios92.html#beasleyalteredspeech
-
-HTML5 media elements expose a native playback rate API, but most players hide
-or artificially limit it. Speed adjustments should be effortless and frequent:
-we don't read at a fixed pace, and we shouldn't watch at one either.
+This fork is maintained as a Firefox port. It uses Firefox-compatible MV3
+packaging, Gecko add-on metadata, Mozilla validation through `web-ext`, and a
+Firefox-specific content bridge for page-context playback control.
 
 ## Features
 
-- **Universal** - works on any site with HTML5 media: YouTube, Netflix,
-  Coursera, podcasts, local files, etc.
-- **Video and audio** - controls both `<video>` and `<audio>` elements.
-- **Fine-grained speed** - 0.07x to 16x in configurable increments.
-- **Per-site speed rules** - set a default playback speed for specific domains
-  (e.g., always 2x on lecture sites).
-- **Per-site disable** - turn off the controller on sites where you don't
-  want it.
-- **Remember speed** - optionally persist your last speed across sessions
-  and tabs.
-- **Speed fightback** - automatically re-applies your chosen speed when a
-  site's player tries to reset it.
-- **Draggable overlay** - reposition the on-video speed indicator anywhere
-  you like.
-- **Fully customizable shortcuts** - remap every key, add modifier combos
-  (Ctrl, Shift, Alt), create multiple preferred-speed toggles.
-- **Custom controller CSS** - style or reposition the overlay with your own
-  CSS rules.
+- Works with HTML5 `<video>` and `<audio>` elements.
+- On-page draggable speed controller.
+- Popup controls for quick speed changes.
+- Keyboard shortcuts for speed, seek, mute, marker, and display actions.
+- Configurable shortcut bindings.
+- Per-site enable/disable and per-site default speed rules.
+- Optional remembered playback speed across refreshes and sessions.
+- Custom controller CSS.
 
 ## Build and Load in Firefox
 
-Run the build before loading the extension. The root manifest points at the
-bundled files in `dist/`, and the build also writes a standalone
-`dist/manifest.json`.
-
 ```sh
-npm install
+npm ci
 npm run build
 ```
 
 Then open `about:debugging#/runtime/this-firefox`, choose **Load Temporary
-Add-on**, and select either `manifest.json` in the repository root or
-`dist/manifest.json`.
+Add-on**, and select either:
 
-## Default keyboard shortcuts
+- `manifest.json` in the repository root
+- `dist/manifest.json`
+
+The root manifest points at the built files in `dist/`; the build also writes a
+standalone manifest inside `dist/`.
+
+## Validation
+
+```sh
+npm run lint
+npm run build:release
+node tests/e2e/validate-extension.js
+nix develop --command web-ext lint --source-dir=dist
+npm test
+```
+
+The CI pipeline runs these same checks through the Nix dev shell.
+
+## Default Keyboard Shortcuts
 
 - **S** - decrease playback speed
 - **D** - increase playback speed
@@ -71,12 +58,27 @@ Add-on**, and select either `manifest.json` in the repository root or
 - **M** - set a marker at current position
 - **J** - jump back to the previously set marker
 
-All shortcuts are fully customizable in the extension's settings page. You can
-reassign keys, add modifier combinations, and define multiple preferred-speed
-shortcuts with different values for quick toggling. Click **Add New** in
-settings to create additional bindings. Refresh the page after making changes
-for them to take effect.
+Shortcuts can be changed from the extension settings page.
+
+## Release Notes
+
+Release builds are generated from `dist/`:
+
+```sh
+npm run release
+```
+
+The resulting zip is written to `release/` and should pass Mozilla validation
+before upload.
+
+## Credits
+
+This project is based on the original
+[Video Speed Controller](https://github.com/igrigorik/videospeed) by
+Ilya Grigorik and contributors, licensed under the MIT License. This Firefox
+fork keeps the original idea and much of the project lineage while adapting the
+extension for Firefox WebExtensions.
 
 ## License
 
-(MIT License) - Copyright (c) 2014 Ilya Grigorik
+MIT License. See [LICENSE](LICENSE).

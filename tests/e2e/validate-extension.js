@@ -70,6 +70,30 @@ function validateExtension() {
       existsSync(join(extensionRoot, 'dist', manifest.action?.default_popup || '')),
       manifest.action?.default_popup
     );
+    for (const [size, iconPath] of Object.entries(sourceManifest.icons || {})) {
+      test(
+        `Root manifest icon ${size} exists`,
+        existsSync(join(extensionRoot, iconPath)),
+        iconPath
+      );
+    }
+    for (const [size, iconPath] of Object.entries(manifest.icons || {})) {
+      test(
+        `Dist manifest icon ${size} exists`,
+        existsSync(join(extensionRoot, 'dist', iconPath)),
+        iconPath
+      );
+    }
+    for (const [size, iconPath] of Object.entries(sourceManifest.action?.default_icon || {})) {
+      test(`Root action icon ${size} exists`, existsSync(join(extensionRoot, iconPath)), iconPath);
+    }
+    for (const [size, iconPath] of Object.entries(manifest.action?.default_icon || {})) {
+      test(
+        `Dist action icon ${size} exists`,
+        existsSync(join(extensionRoot, 'dist', iconPath)),
+        iconPath
+      );
+    }
     test('Manifest version is 3', manifest.manifest_version === 3);
     test(
       'Firefox background script defined',

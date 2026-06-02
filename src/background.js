@@ -18,9 +18,13 @@ async function updateIcon(enabled) {
     const suffix = enabled ? '' : '_disabled';
     await actionSetIcon({
       path: {
+        16: `${assetPathPrefix}assets/icons/icon16${suffix}.png`,
         19: `${assetPathPrefix}assets/icons/icon19${suffix}.png`,
+        24: `${assetPathPrefix}assets/icons/icon24${suffix}.png`,
+        32: `${assetPathPrefix}assets/icons/icon32${suffix}.png`,
         38: `${assetPathPrefix}assets/icons/icon38${suffix}.png`,
         48: `${assetPathPrefix}assets/icons/icon48${suffix}.png`,
+        64: `${assetPathPrefix}assets/icons/icon64${suffix}.png`,
       },
     });
     console.log(`Icon updated: ${enabled ? 'enabled' : 'disabled'}`);
