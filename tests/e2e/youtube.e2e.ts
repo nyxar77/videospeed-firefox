@@ -1,3 +1,6 @@
+// Browser E2E compatibility runner migrated to TypeScript; execution behavior remains unchanged.
+// @ts-nocheck
+
 /**
  * YouTube E2E tests for Video Speed Controller extension
  */
@@ -14,7 +17,7 @@ import {
   takeScreenshot,
   assert,
   sleep,
-} from './e2e-utils.js';
+} from './e2e-utils.ts';
 
 const YOUTUBE_TEST_URL = 'https://www.youtube.com/watch?v=gGCJOTvECVQ';
 

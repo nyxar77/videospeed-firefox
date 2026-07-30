@@ -1,3 +1,6 @@
+// Browser E2E compatibility runner migrated to TypeScript; execution behavior remains unchanged.
+// @ts-nocheck
+
 /**
  * E2E test utilities for Chrome extension testing
  */

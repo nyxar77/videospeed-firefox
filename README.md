@@ -56,7 +56,7 @@ The CI pipeline runs the same checks through the Nix dev shell:
 
 - `npm run lint`
 - `npm run build:release`
-- `node tests/e2e/validate-extension.js`
+- `node tests/e2e/validate-extension.ts`
 - `nix develop --command web-ext lint --source-dir=dist`
 - `npm test`
 

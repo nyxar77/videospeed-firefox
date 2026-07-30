@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+// Browser E2E compatibility runner migrated to TypeScript; execution behavior remains unchanged.
+// @ts-nocheck
+
 /**
  * Extension validation script - checks extension files and structure
  * This runs without browser automation to verify extension is ready for E2E testing

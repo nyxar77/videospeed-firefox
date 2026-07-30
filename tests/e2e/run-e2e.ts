@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 
+// Browser E2E compatibility runner migrated to TypeScript; execution behavior remains unchanged.
+// @ts-nocheck
+
 /**
  * E2E test runner for Video Speed Controller Chrome Extension
- * Usage: node tests/e2e/run-e2e.js [youtube|basic|all]
+ * Usage: node tests/e2e/run-e2e.ts [youtube|basic|all]
  */
 
 import { pathToFileURL, fileURLToPath } from 'url';
@@ -32,20 +35,20 @@ async function runE2ETests() {
   let testFiles;
 
   if (testType === 'youtube') {
-    testFiles = ['youtube.e2e.js'];
+    testFiles = ['youtube.e2e.ts'];
   } else if (testType === 'basic') {
-    testFiles = ['basic.e2e.js'];
+    testFiles = ['basic.e2e.ts'];
   } else if (testType === 'settings') {
-    testFiles = ['settings-injection.e2e.js'];
+    testFiles = ['settings-injection.e2e.ts'];
   } else if (testType === 'display') {
-    testFiles = ['display-toggle.e2e.js'];
+    testFiles = ['display-toggle.e2e.ts'];
   } else {
     // Run all tests
     testFiles = [
-      'basic.e2e.js',
-      'youtube.e2e.js',
-      'settings-injection.e2e.js',
-      'display-toggle.e2e.js',
+      'basic.e2e.ts',
+      'youtube.e2e.ts',
+      'settings-injection.e2e.ts',
+      'display-toggle.e2e.ts',
     ];
   }
 

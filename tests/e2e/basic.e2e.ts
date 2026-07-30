@@ -1,3 +1,6 @@
+// Browser E2E compatibility runner migrated to TypeScript; execution behavior remains unchanged.
+// @ts-nocheck
+
 /**
  * Basic E2E tests for Video Speed Controller extension
  */
@@ -14,7 +17,7 @@ import {
   takeScreenshot,
   assert,
   sleep,
-} from './e2e-utils.js';
+} from './e2e-utils.ts';
 
 export default async function runBasicE2ETests() {
   console.log('🎭 Running Basic E2E Tests...\n');

@@ -85,18 +85,18 @@
 
         try {
           // Settings tests
-          const { settingsTestRunner } = await import('../unit/core/settings.test.js');
+          const { settingsTestRunner } = await import('../unit/core/settings.test.ts');
           const settingsResults = await settingsTestRunner.run();
           resultsDiv.textContent += `\nSettings Tests: ${settingsResults.passed} passed, ${settingsResults.failed} failed\n`;
 
           // VideoController tests
           const { videoControllerTestRunner } =
-            await import('../unit/core/video-controller.test.js');
+            await import('../unit/core/video-controller.test.ts');
           const controllerResults = await videoControllerTestRunner.run();
           resultsDiv.textContent += `VideoController Tests: ${controllerResults.passed} passed, ${controllerResults.failed} failed\n`;
 
           // ActionHandler tests
-          const { actionHandlerTestRunner } = await import('../unit/core/action-handler.test.js');
+          const { actionHandlerTestRunner } = await import('../unit/core/action-handler.test.ts');
           const actionResults = await actionHandlerTestRunner.run();
           resultsDiv.textContent += `ActionHandler Tests: ${actionResults.passed} passed, ${actionResults.failed} failed\n`;
 
@@ -145,7 +145,7 @@
         try {
           // Module integration tests
           const { moduleIntegrationTestRunner } =
-            await import('../integration/module-integration.test.js');
+            await import('../integration/module-integration.test.ts');
           const integrationResults = await moduleIntegrationTestRunner.run();
           resultsDiv.textContent += `Module Integration Tests: ${integrationResults.passed} passed, ${integrationResults.failed} failed\n`;
 

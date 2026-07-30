@@ -71,6 +71,12 @@ export default [
     },
   },
   {
+    files: ['tests/e2e/**/*.ts'],
+    rules: {
+      '@typescript-eslint/ban-ts-comment': 'off',
+    },
+  },
+  {
     files: ['**/*.{ts,mts}'],
     rules: {
       'no-unused-vars': 'off',

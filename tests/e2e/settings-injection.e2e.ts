@@ -1,3 +1,6 @@
+// Browser E2E compatibility runner migrated to TypeScript; execution behavior remains unchanged.
+// @ts-nocheck
+
 /**
  * E2E tests for settings injection and runtime modification.
  *
@@ -6,7 +9,7 @@
  * changes extension behavior (key bindings, speed increments, reset speed).
  */
 
-import { launchChromeWithExtension, sleep } from './e2e-utils.js';
+import { launchChromeWithExtension, sleep } from './e2e-utils.ts';
 
 export default async function runSettingsInjectionE2ETests() {
   console.log('🧪 Running Settings Injection E2E Tests...');

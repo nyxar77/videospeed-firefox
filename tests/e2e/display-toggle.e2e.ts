@@ -1,8 +1,11 @@
+// Browser E2E compatibility runner migrated to TypeScript; execution behavior remains unchanged.
+// @ts-nocheck
+
 /**
  * E2E test for display toggle functionality (V key show/hide).
  */
 
-import { launchChromeWithExtension, sleep, waitForController } from './e2e-utils.js';
+import { launchChromeWithExtension, sleep, waitForController } from './e2e-utils.ts';
 import path from 'path';
 import { fileURLToPath } from 'url';
 

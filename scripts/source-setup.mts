@@ -76,7 +76,7 @@ async function main() {
       RELEASE: '1',
     },
   });
-  await run(process.execPath, ['tests/e2e/validate-extension.js']);
+  await run(process.execPath, ['tests/e2e/validate-extension.ts']);
 }
 
 main().catch((error) => {

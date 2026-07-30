@@ -41,7 +41,7 @@ jobs:
         run: nix develop --command npm run build:release
 
       - name: Validate extension structure
-        run: nix develop --command node tests/e2e/validate-extension.js
+        run: nix develop --command node tests/e2e/validate-extension.ts
 
       - name: Validate Firefox add-on
         run: nix develop --command web-ext lint --source-dir=dist
