@@ -6,6 +6,7 @@ import {
   SETTINGS_EXPORT_VERSION,
 } from '../../../src/utils/settings-transfer.ts';
 import type { Settings } from '../../../src/types/settings.ts';
+import { CONTROLLER_THEMES } from '../../../src/ui/controller-themes.ts';
 
 function settingsFixture(): Settings {
   return {
@@ -63,6 +64,26 @@ describe('settings transfer', () => {
     expect(imported.keyBindings).toEqual(settingsFixture().keyBindings);
     expect(imported.siteRules).toEqual(settingsFixture().siteRules);
     expect('_abort' in imported).toBe(false);
+  });
+
+  it('round-trips every controller theme and preserves Custom CSS verbatim', () => {
+    for (const controllerTheme of CONTROLLER_THEMES) {
+      const settings = settingsFixture();
+      settings.controllerTheme = controllerTheme;
+      settings.customCSS = controllerTheme === 'custom' ? 'vsc-controller { top: 48px; }' : '';
+
+      const imported = parseSettingsImport(createSettingsExport(settings));
+
+      expect(imported.controllerTheme).toBe(controllerTheme);
+      expect(imported.customCSS).toBe(settings.customCSS);
+    }
+  });
+
+  it('exports legacy flavour-only values as their canonical red accents', () => {
+    const settings = settingsFixture();
+    (settings as { controllerTheme: string }).controllerTheme = 'catppuccin-mocha';
+
+    expect(createSettingsExport(settings).settings.controllerTheme).toBe('catppuccin-mocha-red');
   });
 
   it('exports a snapshot rather than references to live settings', () => {

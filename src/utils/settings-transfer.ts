@@ -234,6 +234,10 @@ export function createSettingsExport(settings: Settings): SettingsExport {
   const portable = Object.fromEntries(
     PORTABLE_SETTING_KEYS.map((key) => [key, clone(settings[key])])
   ) as PortableSettings;
+  // Settings normally originate from the typed UI, but exports must remain
+  // portable even if an older extension build left a legacy flavour-only value
+  // in storage. The canonical identifier is what the picker and popup use.
+  portable.controllerTheme = normalizeControllerTheme(settings.controllerTheme);
   return {
     format: SETTINGS_EXPORT_FORMAT,
     version: SETTINGS_EXPORT_VERSION,
