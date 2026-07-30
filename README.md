@@ -90,10 +90,10 @@ silently overwriting the current profile.
 
 This project is based on the original
 [Video Speed Controller](https://github.com/igrigorik/videospeed) by
-Ilya Grigorik and contributors, licensed under the MIT License. This Firefox
-fork keeps the original idea and much of the project lineage while adapting the
-extension for Firefox WebExtensions.
+Ilya Grigorik and contributors, originally licensed under the MIT License.
+This Firefox fork keeps the original idea and much of the project lineage
+while adapting the extension for Firefox WebExtensions.
 
 ## License
 
-MIT License. See [LICENSE](LICENSE).
+GPL-3.0-or-later. See [LICENSE](LICENSE).
