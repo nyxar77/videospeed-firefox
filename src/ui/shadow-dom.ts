@@ -2,12 +2,19 @@
  * Shadow DOM creation and management
  */
 
+import {
+  getControllerThemeCSS,
+  isControllerTheme,
+  type ControllerTheme,
+} from './controller-themes.ts';
+
 interface ShadowDOMOptions {
   top?: string;
   left?: string;
   speed?: string;
   opacity?: number;
   buttonSize?: number;
+  theme?: ControllerTheme;
 }
 
 interface ControllerPosition {
@@ -25,7 +32,14 @@ class ShadowDOMManager {
    * @returns {ShadowRoot} Created shadow root
    */
   static createShadowDOM(wrapper: HTMLElement, options: ShadowDOMOptions = {}): ShadowRoot {
-    const { top = '0px', left = '0px', speed = '1.00', opacity = 0.3, buttonSize = 14 } = options;
+    const {
+      top = '0px',
+      left = '0px',
+      speed = '1.00',
+      opacity = 0.3,
+      buttonSize = 14,
+      theme = 'default',
+    } = options;
 
     const shadow = wrapper.attachShadow({ mode: 'open' });
 
@@ -162,6 +176,7 @@ class ShadowDOMManager {
       }
     `;
     shadow.appendChild(style);
+    this.setTheme(shadow, theme);
 
     // Create controller div
     const controller = document.createElement('div');
@@ -204,6 +219,18 @@ class ShadowDOMManager {
 
     window.VSC.logger.debug('Shadow DOM created for video controller');
     return shadow;
+  }
+
+  /** Apply or replace the theme sheet in an existing controller shadow root. */
+  static setTheme(shadow: ShadowRoot, theme: unknown): void {
+    const resolvedTheme = isControllerTheme(theme) ? theme : 'default';
+    let style = shadow.querySelector<HTMLStyleElement>('style[data-vsc-theme]');
+    if (!style) {
+      style = shadow.ownerDocument.createElement('style');
+      style.dataset.vscTheme = '';
+      shadow.appendChild(style);
+    }
+    style.textContent = getControllerThemeCSS(resolvedTheme);
   }
 
   /**

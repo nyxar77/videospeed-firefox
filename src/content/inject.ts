@@ -3,6 +3,7 @@
  */
 
 import type { Settings } from '../types/settings.ts';
+import { isControllerTheme } from '../ui/controller-themes.ts';
 
 interface ConfigLike {
   settings: Settings;
@@ -41,7 +42,10 @@ interface SiteHandlerManagerLike {
 }
 
 interface CssStorageChangeEvent extends CustomEvent {
-  detail: { customCSS?: { newValue?: string } };
+  detail: {
+    customCSS?: { newValue?: string };
+    controllerTheme?: { newValue?: string };
+  };
 }
 
 interface VscMessage {
@@ -499,6 +503,16 @@ class VideoSpeedExtension {
     }
   }
 
+  updateControllerTheme(theme: unknown): void {
+    if (!window.VSC.stateManager || !isControllerTheme(theme)) {
+      return;
+    }
+
+    for (const video of window.VSC.stateManager.getAllMediaElements() as HTMLMediaElement[]) {
+      video.vsc?.setTheme(theme);
+    }
+  }
+
   /** Live-update the user's custom CSS when options are saved. */
   setupCSSLiveUpdates(): void {
     if (this._cssStorageChangeHandler) {
@@ -510,21 +524,28 @@ class VideoSpeedExtension {
 
     this._cssStorageChangeHandler = (event: Event): void => {
       const e = event as CssStorageChangeEvent;
-      if (e.detail?.customCSS?.newValue === undefined || !this._controllerSheet) {
+      if (!e.detail || !this._controllerSheet) {
         return;
       }
-      const customCSS = e.detail.customCSS.newValue || '';
-      if (customCSS) {
-        if (!this._customSheet) {
-          this._customSheet = new CSSStyleSheet();
-          document.adoptedStyleSheets = [...document.adoptedStyleSheets, this._customSheet];
+
+      if (e.detail.customCSS?.newValue !== undefined) {
+        const customCSS = e.detail.customCSS.newValue || '';
+        if (customCSS) {
+          if (!this._customSheet) {
+            this._customSheet = new CSSStyleSheet();
+            document.adoptedStyleSheets = [...document.adoptedStyleSheets, this._customSheet];
+          }
+          this._customSheet.replaceSync(customCSS);
+        } else if (this._customSheet) {
+          document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
+            (s) => s !== this._customSheet
+          );
+          this._customSheet = null;
         }
-        this._customSheet.replaceSync(customCSS);
-      } else if (this._customSheet) {
-        document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
-          (s) => s !== this._customSheet
-        );
-        this._customSheet = null;
+      }
+
+      if (e.detail.controllerTheme?.newValue !== undefined) {
+        this.updateControllerTheme(e.detail.controllerTheme.newValue);
       }
     };
 

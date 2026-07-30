@@ -21,6 +21,7 @@ declare global {
     positionBeforeJump: number | null;
     mark: number | null;
     remove(): void;
+    setTheme(theme: import('../ui/controller-themes.ts').ControllerTheme): void;
     updateVisibility(): void;
   }
 

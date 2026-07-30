@@ -1,5 +1,6 @@
 import type { ActionName } from '../utils/key-maps.ts';
 import type { SiteRule } from '../utils/site-pattern.ts';
+import type { ControllerTheme } from '../ui/controller-themes.ts';
 
 export interface KeyModifiers {
   shift?: boolean;
@@ -30,6 +31,7 @@ export interface Settings {
   startHidden: boolean;
   controllerOpacity: number;
   controllerButtonSize: number;
+  controllerTheme: ControllerTheme;
   customCSS: string;
   keyBindings: KeyBinding[];
   siteRules: SiteRule[];

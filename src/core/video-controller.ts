@@ -4,6 +4,7 @@
  */
 
 import type { Settings } from '../types/settings.ts';
+import type { ControllerTheme } from '../ui/controller-themes.ts';
 
 interface VideoControllerConfig {
   settings: Settings;
@@ -202,6 +203,7 @@ class VideoController {
       speed: speed,
       opacity: this.config.settings.controllerOpacity,
       buttonSize: this.config.settings.controllerButtonSize,
+      theme: this.config.settings.controllerTheme,
     });
 
     // Set up control events
@@ -235,6 +237,13 @@ class VideoController {
 
     window.VSC.logger.debug('initializeControls End');
     return wrapper;
+  }
+
+  /** Update the controller palette without recreating its DOM or handlers. */
+  setTheme(theme: ControllerTheme): void {
+    if (this.div.shadowRoot) {
+      window.VSC.ShadowDOMManager.setTheme(this.div.shadowRoot, theme);
+    }
   }
 
   /**

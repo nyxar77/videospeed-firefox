@@ -40,6 +40,7 @@ if (!window.VSC.Constants.DEFAULT_SETTINGS) {
     startHidden: false, // default: false
     controllerOpacity: 0.3, // default: 0.3
     controllerButtonSize: 14,
+    controllerTheme: 'default',
     customCSS: '', // user's additional CSS injected alongside the built-in defaults
     keyBindings: PREDEFINED_ACTIONS.map((action) => ({
       action,

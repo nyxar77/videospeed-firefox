@@ -761,6 +761,7 @@ async function save_options(): Promise<void> {
     const startHidden = getElement('startHidden').checked;
     const controllerOpacity = Number(getElement('controllerOpacity').value);
     const controllerButtonSize = Number(getElement('controllerButtonSize').value);
+    const controllerTheme = getElement('controllerTheme').value;
     const logLevel = parseInt(getElement('logLevel').value);
     const siteRules = collectSiteRules();
     const customCSS = getElement('controllerCSS').value;
@@ -801,6 +802,7 @@ async function save_options(): Promise<void> {
       startHidden: startHidden,
       controllerOpacity: controllerOpacity,
       controllerButtonSize: controllerButtonSize,
+      controllerTheme: controllerTheme,
       logLevel: logLevel,
       keyBindings: keyBindings,
       siteRules: siteRules,
@@ -847,6 +849,7 @@ async function restore_options(): Promise<void> {
     getElement('startHidden').checked = storage.startHidden;
     getElement('controllerOpacity').value = storage.controllerOpacity;
     getElement('controllerButtonSize').value = storage.controllerButtonSize;
+    getElement('controllerTheme').value = storage.controllerTheme;
     getElement('logLevel').value = storage.logLevel;
     getElement('controllerCSS').value = storage.customCSS ?? '';
 
