@@ -50,7 +50,7 @@ import '../site-handlers/index.ts';
 import '../site-handlers/scripts/netflix.js';
 
 // Main initialization - must be last
-import '../content/inject.js';
+import '../content/inject.ts';
 
 // The modules above populate window.VSC namespace and window.VSC_controller
 // No additional exports needed here - side effects handle initialization

@@ -77,7 +77,7 @@ async function loadBridge() {
     origAddListener(cb);
   };
   vi.resetModules();
-  await import('../../../src/entries/content-bridge.js');
+  await import('../../../src/entries/content-bridge.ts');
   await vi.advanceTimersByTimeAsync(50);
   await vi.advanceTimersByTimeAsync(10);
   globalThis.chrome.storage.onChanged.addListener = origAddListener;

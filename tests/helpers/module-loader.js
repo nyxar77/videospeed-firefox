@@ -55,7 +55,7 @@ export async function loadCoreModules() {
  */
 export async function loadInjectModules() {
   await loadCoreModules();
-  await import('../../src/content/inject.js');
+  await import('../../src/content/inject.ts');
 }
 
 /**

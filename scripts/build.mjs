@@ -114,9 +114,9 @@ async function build() {
     const esbuildConfig = {
       ...common,
       entryPoints: {
-        'content-bridge': 'src/entries/content-bridge.js',
+        'content-bridge': 'src/entries/content-bridge.ts',
         inject: 'src/entries/inject-entry.js',
-        background: 'src/background.js',
+        background: 'src/background.ts',
         'ui/popup/popup': 'src/ui/popup/popup.js',
         'ui/options/options': 'src/ui/options/options.js',
       },

@@ -4,11 +4,13 @@ import {
   storageGet,
   storageRemove,
   storageSet,
+  type ExtensionApi,
 } from './utils/extension-api.ts';
+import type { KeyBinding, StoredSettings } from './types/settings.ts';
 
-const extensionApi = getExtensionApi();
+const extensionApi = getExtensionApi() as ExtensionApi;
 
-function getActionIconDirectory() {
+function getActionIconDirectory(): string {
   const defaultIcon = extensionApi.runtime.getManifest?.().action?.default_icon;
   const icon16Path =
     typeof defaultIcon === 'string' ? defaultIcon : defaultIcon?.['16'] || defaultIcon?.[16];
@@ -22,7 +24,7 @@ function getActionIconDirectory() {
 
 const actionIconDirectory = getActionIconDirectory();
 
-async function updateIcon(enabled) {
+async function updateIcon(enabled: boolean): Promise<void> {
   try {
     const suffix = enabled ? '' : '_disabled';
     await actionSetIcon({
@@ -39,10 +41,10 @@ async function updateIcon(enabled) {
   }
 }
 
-async function initializeIcon() {
+async function initializeIcon(): Promise<void> {
   try {
-    const storage = await storageGet({ enabled: true });
-    await updateIcon(storage.enabled);
+    const storage = await storageGet<StoredSettings>({ enabled: true });
+    await updateIcon(storage.enabled !== false);
   } catch (error) {
     console.error('Failed to initialize icon:', error);
     await updateIcon(true);
@@ -53,7 +55,7 @@ async function initializeIcon() {
  * Migrate storage to current config version
  * Removes deprecated keys from older versions
  */
-async function migrateConfig() {
+async function migrateConfig(): Promise<void> {
   const DEPRECATED_KEYS = [
     // Removed in v0.9.x
     'speeds',
@@ -111,10 +113,10 @@ import {
  *
  * Single atomic storage write. Idempotent — safe to re-run.
  */
-async function migrateKeyBindingsV2() {
+async function migrateKeyBindingsV2(): Promise<void> {
   try {
-    const storage = await storageGet(null);
-    const bindings = storage.keyBindings;
+    const storage = await storageGet<StoredSettings>(null);
+    const bindings = storage.keyBindings as KeyBinding[] | undefined;
 
     // No bindings in storage → fresh install, v2 defaults applied directly
     if (!bindings || !Array.isArray(bindings) || bindings.length === 0) {
@@ -133,13 +135,13 @@ async function migrateKeyBindingsV2() {
     let customCount = 0;
     let unmappableCount = 0;
 
-    const migrated = bindings.map((binding) => {
+    const migrated = bindings.map((binding: KeyBinding) => {
       // Per-binding idempotency: skip if already has code field
       if (binding.code !== undefined) {
         return binding;
       }
 
-      const legacyKey = binding.key;
+      const legacyKey = binding.key ?? 0;
 
       // Phase 1: Predefined bindings — hardcoded zero-ambiguity mapping
       if (binding.predefined && PREDEFINED_CODE_MAP[legacyKey]) {
@@ -179,7 +181,7 @@ async function migrateKeyBindingsV2() {
     });
 
     // Phase 4: Ensure all 9 predefined actions exist
-    const existingActions = new Set(migrated.map((b) => b.action));
+    const existingActions = new Set(migrated.map((b: KeyBinding) => b.action));
     for (const action of PREDEFINED_ACTIONS) {
       if (!existingActions.has(action)) {
         const defaults = DEFAULT_BINDINGS[action];

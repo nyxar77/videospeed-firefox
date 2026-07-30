@@ -44,7 +44,7 @@ function validateExtension() {
   );
 
   // Check source structure (still needed for unit tests)
-  test('src/content/inject.js exists', existsSync(join(extensionRoot, 'src/content/inject.js')));
+  test('src/content/inject.ts exists', existsSync(join(extensionRoot, 'src/content/inject.ts')));
   test('src/core/ directory exists', existsSync(join(extensionRoot, 'src/core')));
   test('src/utils/ directory exists', existsSync(join(extensionRoot, 'src/utils')));
   test('src/ui/ directory exists', existsSync(join(extensionRoot, 'src/ui')));
@@ -128,7 +128,7 @@ function validateExtension() {
 
   // Check main inject script
   try {
-    const injectScript = readFileSync(join(extensionRoot, 'src/content/inject.js'), 'utf8');
+    const injectScript = readFileSync(join(extensionRoot, 'src/content/inject.ts'), 'utf8');
 
     test('Inject script exports VSC_controller', injectScript.includes('window.VSC_controller'));
     test('Inject script initializes extension', injectScript.includes('initialize'));

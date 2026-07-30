@@ -11,8 +11,14 @@
  */
 
 import { isBlacklisted } from '../utils/blacklist.ts';
-import { getExtensionApi, storageGet, storageSet } from '../utils/extension-api.ts';
+import {
+  getExtensionApi,
+  storageGet,
+  storageSet,
+  type ExtensionApi,
+} from '../utils/extension-api.ts';
 import { matchSiteRule } from '../utils/site-pattern.ts';
+import type { StorageChanges, StoredSettings } from '../types/settings.ts';
 
 // Speed limits for page→bridge write validation.
 // Duplicated from constants.ts (ISOLATED world can't import page modules).
@@ -21,20 +27,29 @@ const SPEED_MAX = 16;
 
 const docEl = document.documentElement;
 let bridgeInitialized = false;
-const extensionApi = getExtensionApi();
+const extensionApi = getExtensionApi() as ExtensionApi;
 
-function cloneDetailForPage(detail) {
+function cloneDetailForPage(detail: unknown): unknown {
   try {
-    if (typeof globalThis.cloneInto === 'function') {
-      return globalThis.cloneInto(detail, window, { cloneFunctions: false });
+    const cloneInto = (
+      globalThis as typeof globalThis & {
+        cloneInto?: (
+          value: unknown,
+          target: Window,
+          options: { cloneFunctions: boolean }
+        ) => unknown;
+      }
+    ).cloneInto;
+    if (typeof cloneInto === 'function') {
+      return cloneInto(detail, window, { cloneFunctions: false });
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.warn('[VSC] Failed to clone event detail for page:', error);
   }
   return detail;
 }
 
-function dispatchToPage(type, detail) {
+function dispatchToPage(type: string, detail: unknown): void {
   docEl.dispatchEvent(new CustomEvent(type, { detail: cloneDetailForPage(detail) }));
 }
 
@@ -51,7 +66,7 @@ async function init() {
     }
     bridgeInitialized = true;
 
-    const settings = await storageGet(null);
+    const settings = await storageGet<StoredSettings>(null);
 
     const disabled = settings.enabled === false;
     // Legacy blacklist: only checked when siteRules hasn't been initialized yet
@@ -93,7 +108,7 @@ async function init() {
     );
 
     // --- Ongoing: storage change relay + lifecycle ---
-    extensionApi.storage.onChanged.addListener((changes, namespace) => {
+    extensionApi.storage.onChanged.addListener((changes: StorageChanges, namespace: string) => {
       if (namespace !== 'sync' && namespace !== 'local') {
         return;
       }
@@ -120,14 +135,14 @@ async function init() {
     });
 
     // --- Ongoing: popup/background message relay ---
-    extensionApi.runtime.onMessage.addListener((request) => {
+    extensionApi.runtime.onMessage.addListener((request: unknown) => {
       dispatchToPage('VSC_MESSAGE', request);
     });
 
     // --- Ongoing: speed write-back from MAIN world ---
-    const handleWriteStorage = (e) => {
+    const handleWriteStorage = (e: CustomEvent<{ lastSpeed?: unknown }>): void => {
       try {
-        const data = e.detail;
+        const data = e.detail as Record<string, unknown> | null;
         if (!data || typeof data !== 'object') {
           return;
         }
@@ -140,13 +155,13 @@ async function init() {
             storageSet({ lastSpeed: clamped });
           }
         }
-      } catch (err) {
-        if (err.message?.includes('Extension context invalidated')) {
-          docEl.removeEventListener('VSC_WRITE_STORAGE', handleWriteStorage);
+      } catch (err: unknown) {
+        if (err instanceof Error && err.message.includes('Extension context invalidated')) {
+          docEl.removeEventListener('VSC_WRITE_STORAGE', handleWriteStorage as EventListener);
         }
       }
     };
-    docEl.addEventListener('VSC_WRITE_STORAGE', handleWriteStorage);
+    docEl.addEventListener('VSC_WRITE_STORAGE', handleWriteStorage as EventListener);
   } catch (error) {
     console.error('[VSC] Bridge init failed:', error);
   }

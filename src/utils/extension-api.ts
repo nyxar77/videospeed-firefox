@@ -1,4 +1,6 @@
-interface StorageArea {
+import type { StorageChanges } from '../types/settings.ts';
+
+export interface StorageArea {
   get(
     keys?: unknown,
     callback?: (items: Record<string, unknown>) => void
@@ -8,13 +10,15 @@ interface StorageArea {
   clear(callback?: () => void): Promise<void> | void;
 }
 
-interface ExtensionApi {
+interface ApiEvent<Callback extends (...args: never[]) => void> {
+  addListener(callback: Callback): void;
+}
+
+export interface ExtensionApi {
   storage: {
     sync?: StorageArea;
     local?: StorageArea;
-    onChanged?: {
-      addListener(callback: (changes: Record<string, unknown>, areaName: string) => void): void;
-    };
+    onChanged: ApiEvent<(changes: StorageChanges, areaName: string) => void>;
   };
   tabs: {
     query(queryInfo: unknown): Promise<unknown[]> | void;
@@ -26,6 +30,12 @@ interface ExtensionApi {
   runtime: {
     openOptionsPage(): Promise<void> | void;
     lastError?: { message?: string };
+    getManifest?(): {
+      action?: { default_icon?: Record<string, string> | string };
+    };
+    onInstalled: ApiEvent<() => void | Promise<void>>;
+    onStartup: ApiEvent<() => void | Promise<void>>;
+    onMessage: ApiEvent<(request: unknown) => void>;
   };
 }
 
