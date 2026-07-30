@@ -26,6 +26,14 @@ function check(label, condition, message) {
   }
 }
 
+function getPreviousTag(currentTag) {
+  const tags = run(`git tag --merged ${currentTag} --sort=-creatordate`)
+    .split('\n')
+    .filter(Boolean);
+
+  return tags.find((candidate) => candidate !== currentTag) || null;
+}
+
 async function createRelease() {
   // Verify gh CLI is available
   try {
@@ -59,22 +67,14 @@ async function createRelease() {
     );
   }
 
-  // Find previous tag for release notes
-  let prevTag;
-  try {
-    prevTag = run(`git describe --tags --abbrev=0 ${tag}^`);
-  } catch {
-    prevTag = null;
-  }
-
   // Generate release notes from commits
-  const range = prevTag ? `${prevTag}..${tag}` : tag;
-  let notes;
-  try {
+  const prevTag = getPreviousTag(tag);
+  let notes = `## Initial Release\n\nRelease ${tag}\n`;
+
+  if (prevTag) {
+    const range = `${prevTag}..${tag}`;
     const log = run(`git log ${range} --pretty=format:"- %s (%h)"`);
     notes = `## What's Changed\n\n${log}\n`;
-  } catch {
-    notes = `Release ${tag}`;
   }
 
   // Write notes to temp file to avoid shell escaping issues

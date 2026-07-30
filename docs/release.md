@@ -24,7 +24,7 @@ npm run release
 
 # 3. Tag and push
 git tag v$(node -p "require('./package.json').version")
-git push origin main --tags
+git push origin master --tags
 
 # 4. Create a draft GitHub release (requires gh CLI)
 npm run release:github
