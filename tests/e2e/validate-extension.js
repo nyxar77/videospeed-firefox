@@ -50,10 +50,10 @@ function validateExtension() {
   test('src/ui/ directory exists', existsSync(join(extensionRoot, 'src/ui')));
 
   // Check key modules
-  test('VideoController exists', existsSync(join(extensionRoot, 'src/core/video-controller.js')));
+  test('VideoController exists', existsSync(join(extensionRoot, 'src/core/video-controller.ts')));
   test('Settings module exists', existsSync(join(extensionRoot, 'src/core/settings.ts')));
-  test('ActionHandler exists', existsSync(join(extensionRoot, 'src/core/action-handler.js')));
-  test('ShadowDOM manager exists', existsSync(join(extensionRoot, 'src/ui/shadow-dom.js')));
+  test('ActionHandler exists', existsSync(join(extensionRoot, 'src/core/action-handler.ts')));
+  test('ShadowDOM manager exists', existsSync(join(extensionRoot, 'src/ui/shadow-dom.ts')));
 
   // Validate manifest.json structure
   try {

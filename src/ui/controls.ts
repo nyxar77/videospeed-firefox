@@ -2,10 +2,25 @@
  * Control button interactions and event handling
  */
 
+import type { Settings } from '../types/settings.ts';
+
+interface ControlsConfig {
+  settings: Settings;
+  getKeyBinding(action: string): number | undefined;
+}
+
+interface ControlsActionHandler {
+  runAction(action: string, value: number | false | undefined, event?: Event): void;
+  adjustSpeed(video: HTMLMediaElement, value: number, options?: Record<string, unknown>): void;
+}
+
 window.VSC = window.VSC || {};
 
 class ControlsManager {
-  constructor(actionHandler, config) {
+  actionHandler: ControlsActionHandler;
+  config: ControlsConfig;
+
+  constructor(actionHandler: ControlsActionHandler, config: ControlsConfig) {
     this.actionHandler = actionHandler;
     this.config = config;
   }
@@ -15,7 +30,7 @@ class ControlsManager {
    * @param {ShadowRoot} shadow - Shadow root containing controls
    * @param {HTMLVideoElement} video - Associated video element
    */
-  setupControlEvents(shadow, video) {
+  setupControlEvents(shadow: ShadowRoot, video: HTMLMediaElement): void {
     this.setupDragHandler(shadow);
     this.setupButtonHandlers(shadow);
     this.setupWheelHandler(shadow, video);
@@ -28,14 +43,15 @@ class ControlsManager {
    * @param {ShadowRoot} shadow - Shadow root
    * @private
    */
-  setupDragHandler(shadow) {
-    const draggable = shadow.querySelector('.draggable');
+  setupDragHandler(shadow: ShadowRoot): void {
+    const draggable = shadow.querySelector('.draggable') as HTMLElement;
 
     // Pointer-based drag (unified mouse + touch)
     draggable.addEventListener(
       'pointerdown',
-      (e) => {
-        this.actionHandler.runAction(e.target.dataset['action'], false, e);
+      (e: PointerEvent) => {
+        const target = e.target as HTMLElement;
+        this.actionHandler.runAction(target.dataset['action'] ?? 'drag', false, e);
         e.stopPropagation();
         e.preventDefault();
       },
@@ -45,7 +61,7 @@ class ControlsManager {
     // Double-click / double-tap to reset speed
     draggable.addEventListener(
       'dblclick',
-      (e) => {
+      (e: MouseEvent) => {
         const resetTarget = this.config.getKeyBinding('reset') || 1.0;
         this.actionHandler.runAction('reset', resetTarget, e);
         e.stopPropagation();
@@ -60,15 +76,16 @@ class ControlsManager {
    * @param {ShadowRoot} shadow - Shadow root
    * @private
    */
-  setupButtonHandlers(shadow) {
-    shadow.querySelectorAll('button').forEach((button) => {
+  setupButtonHandlers(shadow: ShadowRoot): void {
+    shadow.querySelectorAll<HTMLButtonElement>('button').forEach((button) => {
       // Click handler
       button.addEventListener(
         'click',
-        (e) => {
+        (e: MouseEvent) => {
+          const target = e.currentTarget as HTMLButtonElement;
           this.actionHandler.runAction(
-            e.target.dataset['action'],
-            this.config.getKeyBinding(e.target.dataset['action']),
+            target.dataset['action'] ?? '',
+            this.config.getKeyBinding(target.dataset['action'] ?? ''),
             e
           );
           e.stopPropagation();
@@ -79,7 +96,7 @@ class ControlsManager {
       // Touch handler to prevent conflicts
       button.addEventListener(
         'touchstart',
-        (e) => {
+        (e: TouchEvent) => {
           e.stopPropagation();
         },
         true
@@ -89,21 +106,21 @@ class ControlsManager {
 
   /**
    * Set up mouse wheel handler for speed control with touchpad filtering
-   * 
+   *
    * Cross-browser wheel event behavior:
    * - Chrome/Safari/Edge: ALL devices use DOM_DELTA_PIXEL (mouse wheels ~100px, touchpads ~1-15px)
    * - Firefox: Mouse wheels use DOM_DELTA_LINE, touchpads use DOM_DELTA_PIXEL
-   * 
+   *
    * Detection strategy: Use magnitude threshold in DOM_DELTA_PIXEL mode to distinguish
    * mouse wheels (±100px typical) from touchpads (±1-15px typical). Threshold of 50px
    * provides safety margin based on empirical browser testing.
-   * 
+   *
    * @param {ShadowRoot} shadow - Shadow root
    * @param {HTMLVideoElement} video - Video element
    * @private
    */
-  setupWheelHandler(shadow, video) {
-    const controller = shadow.querySelector('#controller');
+  setupWheelHandler(shadow: ShadowRoot, video: HTMLMediaElement): void {
+    const controller = shadow.querySelector('#controller') as HTMLElement;
 
     // Hover dwell gate: only allow wheel events after the cursor has rested on the
     // controller for HOVER_DWELL_MS. This prevents accidental speed changes when
@@ -112,7 +129,7 @@ class ControlsManager {
     const HOVER_DWELL_MS = 300;
     let hoverStart = 0;
 
-    controller.addEventListener('mouseenter', (e) => {
+    controller.addEventListener('mouseenter', (e: MouseEvent) => {
       hoverStart = e.timeStamp;
     });
 
@@ -122,7 +139,7 @@ class ControlsManager {
 
     controller.addEventListener(
       'wheel',
-      (event) => {
+      (event: WheelEvent) => {
         // Reject wheel events before hover dwell threshold is met
         if (event.timeStamp - hoverStart < HOVER_DWELL_MS) {
           window.VSC.logger.debug('Wheel ignored: hover dwell threshold not met');
@@ -134,7 +151,9 @@ class ControlsManager {
           // Chrome/Safari/Edge: Use magnitude to distinguish mouse wheel (>50px) from touchpad (<50px)
           const TOUCHPAD_THRESHOLD = 50;
           if (Math.abs(event.deltaY) < TOUCHPAD_THRESHOLD) {
-            window.VSC.logger.debug(`Touchpad scroll detected (deltaY: ${event.deltaY}) - ignoring`);
+            window.VSC.logger.debug(
+              `Touchpad scroll detected (deltaY: ${event.deltaY}) - ignoring`
+            );
             return;
           }
         }
@@ -148,7 +167,9 @@ class ControlsManager {
 
         this.actionHandler.adjustSpeed(video, speedDelta, { relative: true });
 
-        window.VSC.logger.debug(`Wheel control: adjusting speed by ${speedDelta} (deltaMode: ${event.deltaMode}, deltaY: ${event.deltaY})`);
+        window.VSC.logger.debug(
+          `Wheel control: adjusting speed by ${speedDelta} (deltaMode: ${event.deltaMode}, deltaY: ${event.deltaY})`
+        );
       },
       { passive: false }
     );
@@ -159,8 +180,8 @@ class ControlsManager {
    * @param {ShadowRoot} shadow - Shadow root
    * @private
    */
-  setupClickPrevention(shadow) {
-    const controller = shadow.querySelector('#controller');
+  setupClickPrevention(shadow: ShadowRoot): void {
+    const controller = shadow.querySelector('#controller') as HTMLElement;
 
     // Prevent clicks from bubbling up to page
     controller.addEventListener('click', (e) => e.stopPropagation(), false);

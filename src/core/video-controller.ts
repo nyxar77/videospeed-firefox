@@ -3,13 +3,56 @@
  *
  */
 
+import type { Settings } from '../types/settings.ts';
+
+interface VideoControllerConfig {
+  settings: Settings;
+  getKeyBinding(action: string): number | undefined;
+  save(settings: Partial<Settings>): Promise<boolean>;
+}
+
+interface VideoActionHandler {
+  adjustSpeed(video: HTMLMediaElement, value: number, options?: Record<string, unknown>): void;
+}
+
+interface Positioning {
+  insertionMethod: 'beforeParent' | 'afterParent' | 'firstChild';
+  insertionPoint: HTMLElement;
+}
+
+interface ControllerElement extends HTMLElement {
+  flashTimer?: ReturnType<typeof setTimeout>;
+}
+
 window.VSC = window.VSC || {};
 
 class VideoController {
-  constructor(target, parent, config, actionHandler, shouldStartHidden = false) {
+  video!: HTMLMediaElement;
+  parent!: HTMLElement | null;
+  config!: VideoControllerConfig;
+  actionHandler!: VideoActionHandler;
+  controlsManager!: { setupControlEvents(shadow: ShadowRoot, video: HTMLMediaElement): void };
+  shouldStartHidden!: boolean;
+  controllerId!: string;
+  speedBeforeReset!: number | null;
+  positionBeforeJump!: number | null;
+  mark: number | null = null;
+  div!: ControllerElement;
+  speedIndicator!: HTMLElement;
+  handlePlay?: EventListener;
+  handleSeek?: EventListener;
+  targetObserver?: MutationObserver;
+
+  constructor(
+    target: HTMLMediaElement,
+    parent: HTMLElement | null,
+    config: VideoControllerConfig,
+    actionHandler: VideoActionHandler,
+    shouldStartHidden = false
+  ) {
     // Return existing controller if already attached
     if (target.vsc) {
-      return target.vsc;
+      return target.vsc as unknown as VideoController;
     }
 
     this.video = target;
@@ -59,7 +102,7 @@ class VideoController {
    * conflict with the player's own initialization sequence.
    * @private
    */
-  initializeSpeed() {
+  initializeSpeed(): void {
     const targetSpeed = this.getTargetSpeed();
 
     window.VSC.logger.debug(`Setting initial playbackRate to: ${targetSpeed}`);
@@ -72,7 +115,7 @@ class VideoController {
     // has initialized can race with the site's own init sequence.
     if (this.video.readyState < 1) {
       window.VSC.logger.debug('Deferring initializeSpeed until loadedmetadata');
-      const handler = () => {
+      const handler = (): void => {
         this.video.removeEventListener('loadedmetadata', handler);
         if (targetSpeed !== this.video.playbackRate) {
           this.actionHandler.adjustSpeed(this.video, targetSpeed, { source: 'init' });
@@ -101,7 +144,7 @@ class VideoController {
    * @returns {number} Target speed
    * @private
    */
-  getTargetSpeed() {
+  getTargetSpeed(_eventTarget?: EventTarget | null): number {
     const baseline = this.config.settings.siteDefaultSpeed ?? 1.0;
     const last = this.config.settings.lastSpeed;
 
@@ -119,7 +162,7 @@ class VideoController {
    * @returns {HTMLElement} Controller wrapper element
    * @private
    */
-  initializeControls() {
+  initializeControls(): ControllerElement {
     window.VSC.logger.debug('initializeControls Begin');
 
     const document = this.video.ownerDocument;
@@ -128,7 +171,7 @@ class VideoController {
     window.VSC.logger.debug(`Speed variable set to: ${speed}`);
 
     // Create custom element wrapper to avoid CSS conflicts
-    const wrapper = document.createElement('vsc-controller');
+    const wrapper = document.createElement('vsc-controller') as ControllerElement;
 
     // Apply all CSS classes at once to prevent race condition flash
     const cssClasses = ['vsc-controller'];
@@ -181,7 +224,7 @@ class VideoController {
     if (computedPosition !== 'relative') {
       const position = window.VSC.ShadowDOMManager.calculatePositionRelativeTo(
         this.video,
-        wrapper.offsetParent || this.video.offsetParent
+        (wrapper.offsetParent || this.video.offsetParent) as HTMLElement | null
       );
       wrapper.style.top = position.top;
       wrapper.style.left = position.left;
@@ -200,7 +243,7 @@ class VideoController {
    * @param {HTMLElement} wrapper - Wrapper element to insert
    * @private
    */
-  insertIntoDOM(document, wrapper) {
+  insertIntoDOM(document: Document, wrapper: ControllerElement): void {
     const fragment = document.createDocumentFragment();
     fragment.appendChild(wrapper);
 
@@ -208,15 +251,18 @@ class VideoController {
     const positioning = window.VSC.siteHandlerManager.getControllerPosition(
       this.parent,
       this.video
-    );
+    ) as Positioning;
 
     switch (positioning.insertionMethod) {
       case 'beforeParent':
-        positioning.insertionPoint.parentElement.insertBefore(fragment, positioning.insertionPoint);
+        positioning.insertionPoint.parentElement?.insertBefore(
+          fragment,
+          positioning.insertionPoint
+        );
         break;
 
       case 'afterParent':
-        positioning.insertionPoint.parentElement.insertBefore(
+        positioning.insertionPoint.parentElement?.insertBefore(
           fragment,
           positioning.insertionPoint.nextSibling
         );
@@ -236,23 +282,25 @@ class VideoController {
    * @private
    */
   setupEventHandlers() {
-    const mediaEventAction = (event) => {
-      const targetSpeed = this.getTargetSpeed(event.target);
+    const mediaEventAction = (event: Event): void => {
+      const media = event.target as HTMLMediaElement;
+      const targetSpeed = this.getTargetSpeed(media);
 
       // Lifecycle restore, not a user choice — don't persist to lastSpeed.
       window.VSC.logger.info(`Media event ${event.type}: restoring speed to ${targetSpeed}`);
-      this.actionHandler.adjustSpeed(event.target, targetSpeed, { source: 'init' });
+      this.actionHandler.adjustSpeed(media, targetSpeed, { source: 'init' });
     };
 
     // Bind event handlers
     this.handlePlay = mediaEventAction.bind(this);
     // Don't restore speed on seeked if the video hasn't loaded data yet —
     // the player may still be initializing.
-    this.handleSeek = (event) => {
-      if (event.target.readyState < 2) {
+    this.handleSeek = (event: Event): void => {
+      const media = event.target as HTMLMediaElement;
+      if (media.readyState < 2) {
         return;
       }
-      mediaEventAction.call(this, event);
+      mediaEventAction(event);
     };
 
     // Add essential event listeners for speed restoration
@@ -266,16 +314,17 @@ class VideoController {
    * Set up mutation observer for src attribute changes
    * @private
    */
-  setupMutationObserver() {
-    this.targetObserver = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
+  setupMutationObserver(): void {
+    this.targetObserver = new MutationObserver((mutations: MutationRecord[]) => {
+      mutations.forEach((mutation: MutationRecord) => {
         if (
           mutation.type === 'attributes' &&
           (mutation.attributeName === 'src' || mutation.attributeName === 'currentSrc')
         ) {
           window.VSC.logger.debug('Mutation of A/V element detected');
           const controller = this.div;
-          if (!mutation.target.src && !mutation.target.currentSrc) {
+          const media = mutation.target as HTMLMediaElement;
+          if (!media.src && !media.currentSrc) {
             controller.classList.add('vsc-nosource');
           } else {
             controller.classList.remove('vsc-nosource');
@@ -292,7 +341,7 @@ class VideoController {
   /**
    * Remove controller and clean up
    */
-  remove() {
+  remove(): void {
     window.VSC.logger.debug('Removing VideoController');
 
     // Remove DOM element
@@ -330,7 +379,7 @@ class VideoController {
    * @returns {string} Unique controller ID
    * @private
    */
-  generateControllerId(target) {
+  generateControllerId(target: HTMLMediaElement): string {
     const timestamp = Date.now();
     const src = target.currentSrc || target.src || 'no-src';
     const tagName = target.tagName.toLowerCase();
@@ -349,7 +398,7 @@ class VideoController {
    * Check if the video element is currently visible
    * @returns {boolean} True if video is visible
    */
-  isVideoVisible() {
+  isVideoVisible(): boolean {
     // Check if video is still connected to DOM
     if (!this.video.isConnected) {
       return false;
@@ -374,7 +423,7 @@ class VideoController {
    * Update controller visibility based on video visibility
    * Called when video visibility changes
    */
-  updateVisibility() {
+  updateVisibility(): void {
     const isVisible = this.isVideoVisible();
     const isCurrentlyHidden = this.div.classList.contains('vsc-hidden');
 

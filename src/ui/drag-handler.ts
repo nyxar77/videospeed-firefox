@@ -11,9 +11,12 @@ class DragHandler {
    * @param {HTMLVideoElement} video - Video element
    * @param {PointerEvent|MouseEvent} e - Pointer/mouse event
    */
-  static handleDrag(video, e) {
-    const controller = video.vsc.div;
-    const shadowController = controller.shadowRoot.querySelector('#controller');
+  static handleDrag(video: HTMLMediaElement, e: PointerEvent | MouseEvent): void {
+    const controller = video.vsc?.div;
+    if (!controller) {
+      return;
+    }
+    const shadowController = controller.shadowRoot?.querySelector('#controller') as HTMLElement;
 
     video.classList.add('vcs-dragging');
     shadowController.classList.add('dragging');
@@ -33,16 +36,20 @@ class DragHandler {
       initialControllerRect.width > 0 &&
       initialControllerRect.height > 0;
 
-    const draggable = e.target;
+    const draggable = e.target as HTMLElement & {
+      setPointerCapture?: (pointerId: number) => void;
+    };
+    const isPointerEvent = 'pointerId' in e && typeof e.pointerId === 'number';
 
     // Capture pointer so all move/up events route here regardless of position
-    if (e.pointerId !== undefined) {
-      draggable.setPointerCapture(e.pointerId);
+    if (isPointerEvent) {
+      draggable.setPointerCapture?.(e.pointerId);
     }
 
-    const onMove = (ev) => {
-      const dx = ev.clientX - initialXY[0];
-      const dy = ev.clientY - initialXY[1];
+    const onMove = (ev: Event) => {
+      const pointer = ev as PointerEvent | MouseEvent;
+      const dx = pointer.clientX - initialXY[0];
+      const dy = pointer.clientY - initialXY[1];
 
       let left = initialControllerXY[0] + dx;
       let top = initialControllerXY[1] + dy;
@@ -63,7 +70,7 @@ class DragHandler {
       shadowController.style.top = `${top}px`;
     };
 
-    const onEnd = () => {
+    const onEnd = (): void => {
       draggable.removeEventListener('pointermove', onMove);
       draggable.removeEventListener('pointerup', onEnd);
       draggable.removeEventListener('pointercancel', onEnd);
@@ -77,7 +84,7 @@ class DragHandler {
       window.VSC.logger.debug('Drag operation completed');
     };
 
-    if (e.pointerId !== undefined) {
+    if (isPointerEvent) {
       draggable.addEventListener('pointermove', onMove);
       draggable.addEventListener('pointerup', onEnd);
       draggable.addEventListener('pointercancel', onEnd);

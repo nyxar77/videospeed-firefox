@@ -2,10 +2,49 @@
  * Event management system for Video Speed Controller
  */
 
+import type { KeyBinding, KeyModifiers, Settings } from '../types/settings.ts';
+
+interface EventManagerConfig {
+  settings: Settings;
+}
+
+interface ActionHandlerLike {
+  runAction(action: string, value: number, event?: Event): void;
+  adjustSpeed(video: HTMLMediaElement, value: number, options?: Record<string, unknown>): void;
+}
+
+interface ListenerRegistration {
+  type: string;
+  handler: EventListener;
+  useCapture: boolean;
+}
+
 window.VSC = window.VSC || {};
 
 class EventManager {
-  constructor(config, actionHandler) {
+  static modifiersMatch: (
+    mods: KeyModifiers,
+    ctrl: boolean,
+    alt: boolean,
+    meta: boolean,
+    shift: boolean
+  ) => boolean;
+  static USER_GESTURE_WINDOW_MS: number;
+  static BASE_COOLDOWN_MS: number;
+  static MAX_COOLDOWN_MS: number;
+  static MAX_FIGHT_COUNT: number;
+  static FIGHT_WINDOW_MS: number;
+
+  config: EventManagerConfig;
+  actionHandler: ActionHandlerLike | null;
+  listeners: Map<Document, ListenerRegistration[]>;
+  coolDown: ReturnType<typeof setTimeout> | false;
+  lastKeyEventSignature: string | null;
+  fightCount: number;
+  fightTimer: ReturnType<typeof setTimeout> | null;
+  lastUserInteractionAt: number;
+
+  constructor(config: EventManagerConfig, actionHandler: ActionHandlerLike | null) {
     this.config = config;
     this.actionHandler = actionHandler;
     this.listeners = new Map();
@@ -29,7 +68,7 @@ class EventManager {
    * Set up all event listeners
    * @param {Document} document - Document to attach events to
    */
-  setupEventListeners(document) {
+  setupEventListeners(document: Document): void {
     this.setupKeyboardShortcuts(document);
     this.setupRateChangeListener(document);
     this.setupUserGestureListener(document);
@@ -39,26 +78,28 @@ class EventManager {
    * Set up keyboard shortcuts
    * @param {Document} document - Document to attach events to
    */
-  setupKeyboardShortcuts(document) {
+  setupKeyboardShortcuts(document: Document): void {
     const docs = [document];
 
     try {
       if (window.VSC.inIframe()) {
-        docs.push(window.top.document);
+        if (window.top) {
+          docs.push(window.top.document);
+        }
       }
     } catch {
       // Cross-origin iframe - ignore
     }
 
     docs.forEach((doc) => {
-      const keydownHandler = (event) => this.handleKeydown(event);
+      const keydownHandler: EventListener = (event) => this.handleKeydown(event as KeyboardEvent);
       doc.addEventListener('keydown', keydownHandler, true);
 
       // Store reference for cleanup
       if (!this.listeners.has(doc)) {
         this.listeners.set(doc, []);
       }
-      this.listeners.get(doc).push({
+      this.listeners.get(doc)?.push({
         type: 'keydown',
         handler: keydownHandler,
         useCapture: true,
@@ -71,7 +112,7 @@ class EventManager {
    * @param {KeyboardEvent} event - Keyboard event
    * @private
    */
-  handleKeydown(event) {
+  handleKeydown(event: KeyboardEvent): boolean {
     window.VSC.logger.verbose(
       `Processing keydown event: code=${event.code}, key=${event.key}, keyCode=${event.keyCode}`
     );
@@ -85,13 +126,13 @@ class EventManager {
       event.key === 'Process' ||
       event.key === 'Dead'
     ) {
-      return;
+      return false;
     }
 
     // Event deduplication — include code+key to handle empty-code cases
     const eventSignature = `${event.code}_${event.key}_${event.timeStamp}_${event.type}`;
     if (this.lastKeyEventSignature === eventSignature) {
-      return;
+      return false;
     }
     this.lastKeyEventSignature = eventSignature;
 
@@ -112,7 +153,7 @@ class EventManager {
     const keyBinding = this.findMatchingBinding(event);
 
     if (keyBinding) {
-      this.actionHandler.runAction(keyBinding.action, keyBinding.value, event);
+      this.actionHandler?.runAction(keyBinding.action, keyBinding.value, event);
 
       if (this.config.settings.exclusiveKeys) {
         event.preventDefault();
@@ -140,7 +181,7 @@ class EventManager {
    * @returns {Object|undefined} Matching binding, or undefined
    * @private
    */
-  findMatchingBinding(event) {
+  findMatchingBinding(event: KeyboardEvent): KeyBinding | undefined {
     const bindings = this.config.settings.keyBindings;
     const code = event.code;
     const keyCode = event.keyCode;
@@ -204,9 +245,15 @@ class EventManager {
    * @returns {boolean} True if typing context
    * @private
    */
-  isTypingContext(target) {
+  isTypingContext(target: EventTarget | null): boolean {
+    if (!(target instanceof Element)) {
+      return false;
+    }
+
     return (
-      target.nodeName === 'INPUT' || target.nodeName === 'TEXTAREA' || target.isContentEditable
+      target.nodeName === 'INPUT' ||
+      target.nodeName === 'TEXTAREA' ||
+      (target as HTMLElement).isContentEditable
     );
   }
 
@@ -219,10 +266,10 @@ class EventManager {
    * @param {Document} document
    * @private
    */
-  setupUserGestureListener(document) {
-    const clickHandler = (event) => {
+  setupUserGestureListener(document: Document): void {
+    const clickHandler: EventListener = (event) => {
       // Skip clicks on our own controller (shadow host retargeted at boundary)
-      if (event.target?.closest?.('vsc-controller')) {
+      if ((event.target as Element | null)?.closest?.('vsc-controller')) {
         return;
       }
       this.lastUserInteractionAt = event.timeStamp;
@@ -232,22 +279,23 @@ class EventManager {
     if (!this.listeners.has(document)) {
       this.listeners.set(document, []);
     }
-    this.listeners.get(document).push({ type: 'click', handler: clickHandler, useCapture: true });
+    this.listeners.get(document)?.push({ type: 'click', handler: clickHandler, useCapture: true });
   }
 
   /**
    * Set up rate change event listener
    * @param {Document} document - Document to attach events to
    */
-  setupRateChangeListener(document) {
-    const rateChangeHandler = (event) => this.handleRateChange(event);
+  setupRateChangeListener(document: Document): void {
+    const rateChangeHandler: EventListener = (event) =>
+      this.handleRateChange(event as Event & { detail?: unknown });
     document.addEventListener('ratechange', rateChangeHandler, true);
 
     // Store reference for cleanup
     if (!this.listeners.has(document)) {
       this.listeners.set(document, []);
     }
-    this.listeners.get(document).push({
+    this.listeners.get(document)?.push({
       type: 'ratechange',
       handler: rateChangeHandler,
       useCapture: true,
@@ -259,12 +307,14 @@ class EventManager {
    * @param {Event} event - Rate change event
    * @private
    */
-  handleRateChange(event) {
+  handleRateChange(event: Event & { detail?: unknown }): void {
     if (this.coolDown) {
       window.VSC.logger.debug('Rate change event blocked by cooldown');
 
       // Get the video element to restore authoritative speed
-      const video = event.composedPath ? event.composedPath()[0] : event.target;
+      const video = (
+        event.composedPath ? event.composedPath()[0] : event.target
+      ) as HTMLMediaElement;
 
       // Don't fight back during video initialization — the player's own setup
       // fires ratechange at readyState=0; overwriting it can break the player.
@@ -289,7 +339,7 @@ class EventManager {
     }
 
     // Get the actual video element (handle shadow DOM)
-    const video = event.composedPath ? event.composedPath()[0] : event.target;
+    const video = (event.composedPath ? event.composedPath()[0] : event.target) as HTMLMediaElement;
 
     // Skip if no VSC controller attached
     if (!video.vsc) {
@@ -298,7 +348,8 @@ class EventManager {
     }
 
     // Check if this is our own event
-    if (event.detail && event.detail.origin === 'videoSpeed') {
+    const detail = event.detail as { origin?: string } | undefined;
+    if (detail?.origin === 'videoSpeed') {
       // This is our change, don't process it again
       window.VSC.logger.debug('Ignoring extension-originated rate change');
       return;
@@ -394,7 +445,7 @@ class EventManager {
   /**
    * Start cooldown period to prevent event spam
    */
-  refreshCoolDown(duration = EventManager.BASE_COOLDOWN_MS) {
+  refreshCoolDown(duration = EventManager.BASE_COOLDOWN_MS): void {
     window.VSC.logger.debug(`Begin refreshCoolDown (${duration}ms)`);
 
     if (this.coolDown) {
@@ -411,13 +462,14 @@ class EventManager {
   /**
    * Clean up all event listeners
    */
-  cleanup() {
+  cleanup(): void {
     this.listeners.forEach((eventList, doc) => {
       eventList.forEach(({ type, handler, useCapture }) => {
         try {
           doc.removeEventListener(type, handler, useCapture);
-        } catch (e) {
-          window.VSC.logger.warn(`Failed to remove event listener: ${e.message}`);
+        } catch (e: unknown) {
+          const message = e instanceof Error ? e.message : String(e);
+          window.VSC.logger.warn(`Failed to remove event listener: ${message}`);
         }
       });
     });
@@ -441,7 +493,13 @@ class EventManager {
  * Compare binding modifiers against event modifier state.
  * @returns {boolean} True if all four modifiers match exactly.
  */
-EventManager.modifiersMatch = function (mods, ctrl, alt, meta, shift) {
+EventManager.modifiersMatch = function (
+  mods: KeyModifiers,
+  ctrl: boolean,
+  alt: boolean,
+  meta: boolean,
+  shift: boolean
+): boolean {
   return mods.ctrl === ctrl && mods.alt === alt && mods.meta === meta && mods.shift === shift;
 };
 

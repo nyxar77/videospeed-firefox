@@ -12,7 +12,7 @@ export async function loadCoreModules() {
   await import('../../src/utils/constants.ts');
   await import('../../src/utils/logger.ts');
   await import('../../src/utils/dom-utils.ts');
-  await import('../../src/utils/event-manager.js');
+  await import('../../src/utils/event-manager.ts');
 
   // Site pattern matching — must come before settings.ts (mirrors inject-entry.js).
   // The module self-registers on window.VSC.matchSiteRule.
@@ -36,14 +36,14 @@ export async function loadCoreModules() {
   await import('../../src/site-handlers/index.js');
 
   // Core controllers
-  await import('../../src/core/action-handler.js');
-  await import('../../src/core/video-controller.js');
+  await import('../../src/core/action-handler.ts');
+  await import('../../src/core/video-controller.ts');
 
   // UI components
-  await import('../../src/ui/controls.js');
-  await import('../../src/ui/drag-handler.js');
-  await import('../../src/ui/shadow-dom.js');
-  await import('../../src/ui/vsc-controller-element.js');
+  await import('../../src/ui/controls.ts');
+  await import('../../src/ui/drag-handler.ts');
+  await import('../../src/ui/shadow-dom.ts');
+  await import('../../src/ui/vsc-controller-element.ts');
 
   // Observers
   await import('../../src/observers/mutation-observer.js');

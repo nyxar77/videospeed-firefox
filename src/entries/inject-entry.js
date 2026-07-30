@@ -9,7 +9,7 @@ import '../utils/constants.ts';
 import '../utils/logger.ts';
 import '../utils/debug-helper.js';
 import '../utils/dom-utils.ts';
-import '../utils/event-manager.js';
+import '../utils/event-manager.ts';
 
 // Site pattern matching — side-effect import registers window.VSC.matchSiteRule.
 // Must come before settings.ts so load() can call it.
@@ -27,14 +27,14 @@ import '../observers/media-observer.js';
 import '../observers/mutation-observer.js';
 
 // Core functionality - depends on settings and observers
-import '../core/action-handler.js';
-import '../core/video-controller.js';
+import '../core/action-handler.ts';
+import '../core/video-controller.ts';
 
 // UI components - depends on core functionality
-import '../ui/controls.js';
-import '../ui/drag-handler.js';
-import '../ui/shadow-dom.js';
-import '../ui/vsc-controller-element.js';
+import '../ui/controls.ts';
+import '../ui/drag-handler.ts';
+import '../ui/shadow-dom.ts';
+import '../ui/vsc-controller-element.ts';
 
 // Site-specific handlers - depends on core
 import '../site-handlers/base-handler.js';

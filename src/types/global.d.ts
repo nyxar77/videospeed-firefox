@@ -11,8 +11,17 @@ declare global {
     VSC_settings?: Record<string, unknown>;
   }
 
+  interface VSCControllerState {
+    controllerId: string;
+    div: HTMLElement & { flashTimer?: ReturnType<typeof setTimeout> };
+    speedIndicator: HTMLElement;
+    speedBeforeReset: number | null;
+    positionBeforeJump: number | null;
+    mark: number | null;
+  }
+
   interface HTMLMediaElement {
-    vsc?: { controllerId?: string };
+    vsc?: VSCControllerState;
   }
 
   var browser: any;

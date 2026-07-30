@@ -2,6 +2,19 @@
  * Shadow DOM creation and management
  */
 
+interface ShadowDOMOptions {
+  top?: string;
+  left?: string;
+  speed?: string;
+  opacity?: number;
+  buttonSize?: number;
+}
+
+interface ControllerPosition {
+  top: string;
+  left: string;
+}
+
 window.VSC = window.VSC || {};
 
 class ShadowDOMManager {
@@ -11,12 +24,13 @@ class ShadowDOMManager {
    * @param {Object} options - Configuration options
    * @returns {ShadowRoot} Created shadow root
    */
-  static createShadowDOM(wrapper, options = {}) {
+  static createShadowDOM(wrapper: HTMLElement, options: ShadowDOMOptions = {}): ShadowRoot {
     const { top = '0px', left = '0px', speed = '1.00', opacity = 0.3, buttonSize = 14 } = options;
 
     const shadow = wrapper.attachShadow({ mode: 'open' });
 
     // Create style element with embedded CSS for immediate styling
+    const document = wrapper.ownerDocument;
     const style = document.createElement('style');
     style.textContent = `
       * {
@@ -168,18 +182,18 @@ class ShadowDOMManager {
     controls.style.cssText = `font-size: ${buttonSize}px; line-height: ${buttonSize}px;`;
 
     // Create buttons
-    const buttons = [
-      { action: 'rewind', text: '«', class: 'rw' },
-      { action: 'slower', text: '−', class: '' },
-      { action: 'faster', text: '+', class: '' },
-      { action: 'advance', text: '»', class: 'rw' },
+    const buttons: Array<{ action: string; text: string; className: string }> = [
+      { action: 'rewind', text: '«', className: 'rw' },
+      { action: 'slower', text: '−', className: '' },
+      { action: 'faster', text: '+', className: '' },
+      { action: 'advance', text: '»', className: 'rw' },
     ];
 
     buttons.forEach((btnConfig) => {
       const button = document.createElement('button');
       button.setAttribute('data-action', btnConfig.action);
-      if (btnConfig.class) {
-        button.className = btnConfig.class;
+      if (btnConfig.className) {
+        button.className = btnConfig.className;
       }
       button.textContent = btnConfig.text;
       controls.appendChild(button);
@@ -197,8 +211,8 @@ class ShadowDOMManager {
    * @param {ShadowRoot} shadow - Shadow root
    * @returns {HTMLElement} Controller element
    */
-  static getController(shadow) {
-    return shadow.querySelector('#controller');
+  static getController(shadow: ShadowRoot): HTMLElement {
+    return shadow.querySelector('#controller') as HTMLElement;
   }
 
   /**
@@ -206,8 +220,8 @@ class ShadowDOMManager {
    * @param {ShadowRoot} shadow - Shadow root
    * @returns {HTMLElement} Controls element
    */
-  static getControls(shadow) {
-    return shadow.querySelector('#controls');
+  static getControls(shadow: ShadowRoot): HTMLElement {
+    return shadow.querySelector('#controls') as HTMLElement;
   }
 
   /**
@@ -215,8 +229,8 @@ class ShadowDOMManager {
    * @param {ShadowRoot} shadow - Shadow root
    * @returns {HTMLElement} Speed indicator element
    */
-  static getSpeedIndicator(shadow) {
-    return shadow.querySelector('.draggable');
+  static getSpeedIndicator(shadow: ShadowRoot): HTMLElement {
+    return shadow.querySelector('.draggable') as HTMLElement;
   }
 
   /**
@@ -224,7 +238,7 @@ class ShadowDOMManager {
    * @param {ShadowRoot} shadow - Shadow root
    * @returns {NodeList} Button elements
    */
-  static getButtons(shadow) {
+  static getButtons(shadow: ShadowRoot): NodeListOf<HTMLButtonElement> {
     return shadow.querySelectorAll('button');
   }
 
@@ -233,7 +247,7 @@ class ShadowDOMManager {
    * @param {ShadowRoot} shadow - Shadow root
    * @param {number} speed - New speed value
    */
-  static updateSpeedDisplay(shadow, speed) {
+  static updateSpeedDisplay(shadow: ShadowRoot, speed: number): void {
     const speedIndicator = this.getSpeedIndicator(shadow);
     if (speedIndicator) {
       speedIndicator.textContent = window.VSC.Constants.formatSpeed(speed);
@@ -245,7 +259,7 @@ class ShadowDOMManager {
    * @param {HTMLVideoElement} video - Video element
    * @returns {Object} Position object with top and left properties
    */
-  static calculatePosition(video) {
+  static calculatePosition(video: HTMLMediaElement): ControllerPosition {
     const rect = video.getBoundingClientRect();
 
     // getBoundingClientRect is relative to the viewport; style coordinates
@@ -264,7 +278,10 @@ class ShadowDOMManager {
    * @param {HTMLElement|null} containingBlock - Controller's offset parent
    * @returns {Object} Position object with top and left properties
    */
-  static calculatePositionRelativeTo(video, containingBlock) {
+  static calculatePositionRelativeTo(
+    video: HTMLMediaElement,
+    containingBlock: HTMLElement | null
+  ): ControllerPosition {
     const rect = video.getBoundingClientRect();
     const containingRect = containingBlock?.getBoundingClientRect();
     const top = rect.top - (containingRect?.top || 0) + (containingBlock?.scrollTop || 0);

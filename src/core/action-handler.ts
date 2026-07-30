@@ -3,10 +3,34 @@
  *
  */
 
+import type { Settings } from '../types/settings.ts';
+
+interface ActionHandlerConfig {
+  settings: Settings;
+  getKeyBinding(action: string): number | undefined;
+  save(settings: Partial<Settings>): Promise<boolean>;
+}
+
+interface EventManagerLike {
+  refreshCoolDown(duration?: number): void;
+}
+
+interface ControllerElement extends HTMLElement {
+  flashTimer?: ReturnType<typeof setTimeout>;
+}
+
+interface SpeedAdjustmentOptions {
+  relative?: boolean;
+  source?: string;
+}
+
 window.VSC = window.VSC || {};
 
 class ActionHandler {
-  constructor(config, eventManager) {
+  config: ActionHandlerConfig;
+  eventManager: EventManagerLike | null;
+
+  constructor(config: ActionHandlerConfig, eventManager: EventManagerLike | null) {
     this.config = config;
     this.eventManager = eventManager;
   }
@@ -17,19 +41,20 @@ class ActionHandler {
    * @param {*} value - Action value
    * @param {Event} e - Event object (optional)
    */
-  runAction(action, value, e) {
+  runAction(action: string, value: number | false | undefined, e?: Event): void {
     // Use state manager for complete media discovery (includes shadow DOM)
-    const mediaTags = window.VSC.stateManager
-      ? window.VSC.stateManager.getControlledElements()
-      : []; // No fallback - state manager should always be available
+    const mediaTags = (
+      window.VSC.stateManager ? window.VSC.stateManager.getControlledElements() : []
+    ) as HTMLMediaElement[]; // No fallback - state manager should always be available
 
     // Get the controller that was used if called from a button press event
     let targetController = null;
     if (e) {
-      targetController = e.target.getRootNode().host;
+      const target = e.target as Node;
+      targetController = (target.getRootNode() as ShadowRoot).host;
     }
 
-    mediaTags.forEach((v) => {
+    mediaTags.forEach((v: HTMLMediaElement) => {
       const controller = v.vsc?.div;
 
       if (!controller) {
@@ -56,38 +81,48 @@ class ActionHandler {
    * @param {Event} e - Event object (optional)
    * @private
    */
-  executeAction(action, value, video, e) {
+  executeAction(
+    action: string,
+    value: number | false | undefined,
+    video: HTMLMediaElement,
+    e?: Event
+  ): void {
+    const numericValue = typeof value === 'number' ? value : 0;
+    const state = video.vsc;
+    if (!state) {
+      return;
+    }
     switch (action) {
       case 'rewind':
         window.VSC.logger.debug('Rewind');
-        this.seek(video, -value);
+        this.seek(video, -numericValue);
         break;
 
       case 'advance':
         window.VSC.logger.debug('Fast forward');
-        this.seek(video, value);
+        this.seek(video, numericValue);
         break;
 
       case 'faster': {
         window.VSC.logger.debug('Increase speed');
-        this.adjustSpeed(video, value, { relative: true });
+        this.adjustSpeed(video, numericValue, { relative: true });
         break;
       }
 
       case 'slower': {
         window.VSC.logger.debug('Decrease speed');
-        this.adjustSpeed(video, -value, { relative: true });
+        this.adjustSpeed(video, -numericValue, { relative: true });
         break;
       }
 
       case 'reset':
         window.VSC.logger.debug('Reset speed');
-        this.resetSpeed(video, value, this.config.getKeyBinding('fast'));
+        this.resetSpeed(video, numericValue, this.config.getKeyBinding('fast'));
         break;
 
       case 'display': {
         window.VSC.logger.debug('Display action triggered');
-        const controller = video.vsc.div;
+        const controller = state.div;
 
         if (!controller) {
           window.VSC.logger.error('No controller found for video');
@@ -116,7 +151,7 @@ class ActionHandler {
 
       case 'blink':
         window.VSC.logger.debug('Showing controller momentarily');
-        this.flashController(video.vsc.div, value);
+        this.flashController(state.div, numericValue);
         break;
 
       case 'drag':
@@ -125,7 +160,7 @@ class ActionHandler {
 
       case 'fast':
         window.VSC.logger.debug('Preferred speed');
-        this.resetSpeed(video, value, this.config.getKeyBinding('reset'));
+        this.resetSpeed(video, numericValue, this.config.getKeyBinding('reset'));
         break;
 
       case 'pause':
@@ -137,11 +172,11 @@ class ActionHandler {
         break;
 
       case 'louder':
-        this.volumeUp(video, value);
+        this.volumeUp(video, numericValue);
         break;
 
       case 'softer':
-        this.volumeDown(video, value);
+        this.volumeDown(video, numericValue);
         break;
 
       case 'mark':
@@ -154,12 +189,12 @@ class ActionHandler {
 
       case 'SET_SPEED':
         window.VSC.logger.info('Setting speed to:', value);
-        this.adjustSpeed(video, value, { source: 'internal' });
+        this.adjustSpeed(video, numericValue, { source: 'internal' });
         break;
 
       case 'ADJUST_SPEED':
         window.VSC.logger.info('Adjusting speed by:', value);
-        this.adjustSpeed(video, value, { relative: true, source: 'internal' });
+        this.adjustSpeed(video, numericValue, { relative: true, source: 'internal' });
         break;
 
       case 'RESET_SPEED': {
@@ -179,7 +214,7 @@ class ActionHandler {
    * @param {HTMLMediaElement} video - Video element
    * @param {number} seekSeconds - Seconds to seek
    */
-  seek(video, seekSeconds) {
+  seek(video: HTMLMediaElement, seekSeconds: number): void {
     // Use site-specific seeking (handlers return true if they handle it)
     window.VSC.siteHandlerManager.handleSeek(video, seekSeconds);
   }
@@ -188,7 +223,7 @@ class ActionHandler {
    * Toggle pause/play
    * @param {HTMLMediaElement} video - Video element
    */
-  pause(video) {
+  pause(video: HTMLMediaElement): void {
     if (video.paused) {
       window.VSC.logger.debug('Resuming video');
       video.play();
@@ -211,7 +246,7 @@ class ActionHandler {
    * @param {number} target - Target speed for this action
    * @param {number} [crossTarget] - Target speed of the paired action (for cross-toggle)
    */
-  resetSpeed(video, target, crossTarget) {
+  resetSpeed(video: HTMLMediaElement, target: number, crossTarget?: number): void {
     if (!video.vsc) {
       window.VSC.logger.warn('resetSpeed called on video without controller');
       return;
@@ -244,7 +279,7 @@ class ActionHandler {
    * Toggle mute
    * @param {HTMLMediaElement} video - Video element
    */
-  muted(video) {
+  muted(video: HTMLMediaElement): void {
     video.muted = video.muted !== true;
   }
 
@@ -253,8 +288,8 @@ class ActionHandler {
    * @param {HTMLMediaElement} video - Video element
    * @param {number} value - Amount to increase
    */
-  volumeUp(video, value) {
-    video.volume = Math.min(1, (video.volume + value).toFixed(2));
+  volumeUp(video: HTMLMediaElement, value: number): void {
+    video.volume = Math.min(1, Number((video.volume + value).toFixed(2)));
   }
 
   /**
@@ -262,44 +297,49 @@ class ActionHandler {
    * @param {HTMLMediaElement} video - Video element
    * @param {number} value - Amount to decrease
    */
-  volumeDown(video, value) {
-    video.volume = Math.max(0, (video.volume - value).toFixed(2));
+  volumeDown(video: HTMLMediaElement, value: number): void {
+    video.volume = Math.max(0, Number((video.volume - value).toFixed(2)));
   }
 
   /**
    * Set time marker
    * @param {HTMLMediaElement} video - Video element
    */
-  setMark(video) {
+  setMark(video: HTMLMediaElement): void {
     window.VSC.logger.debug('Adding marker');
-    video.vsc.mark = video.currentTime;
+    const state = video.vsc;
+    if (state) {
+      state.mark = video.currentTime;
+    }
   }
 
   /**
    * Jump to time marker, or jump back to previous position if already at marker
    * @param {HTMLMediaElement} video - Video element
    */
-  jumpToMark(video) {
+  jumpToMark(video: HTMLMediaElement): void {
+    const state = video.vsc;
     if (
-      video.vsc.mark === null ||
-      video.vsc.mark === undefined ||
-      typeof video.vsc.mark !== 'number'
+      !state ||
+      state.mark === null ||
+      state.mark === undefined ||
+      typeof state.mark !== 'number'
     ) {
       return;
     }
 
     const currentTime = video.currentTime;
 
-    if (video.vsc.positionBeforeJump !== null && Math.abs(currentTime - video.vsc.mark) < 0.05) {
+    if (state.positionBeforeJump !== null && Math.abs(currentTime - state.mark) < 0.05) {
       // At the marker — toggle back to where we came from
       window.VSC.logger.debug('Jumping back to pre-marker position');
-      video.currentTime = video.vsc.positionBeforeJump;
-      video.vsc.positionBeforeJump = null;
+      video.currentTime = state.positionBeforeJump;
+      state.positionBeforeJump = null;
     } else {
       // Jump to marker, remembering current position
       window.VSC.logger.debug('Jumping to marker');
-      video.vsc.positionBeforeJump = currentTime;
-      video.currentTime = video.vsc.mark;
+      state.positionBeforeJump = currentTime;
+      video.currentTime = state.mark;
     }
   }
 
@@ -310,7 +350,7 @@ class ActionHandler {
    * @param {HTMLElement} controller - Controller element
    * @param {number} duration - Duration in ms (default 2000)
    */
-  flashController(controller, duration) {
+  flashController(controller: ControllerElement, duration = 2000): void {
     // startHidden is a hard preference — never flash, regardless of V toggle.
     if (this.config.settings.startHidden) {
       window.VSC.logger.debug('flashController skipped: startHidden is a hard preference');
@@ -357,7 +397,7 @@ class ActionHandler {
    * @returns {boolean} True if associated with audio element
    * @private
    */
-  isAudioController(controller) {
+  isAudioController(controller: HTMLElement): boolean {
     // Find associated media element using state manager
     const mediaElements = window.VSC.stateManager
       ? window.VSC.stateManager.getControlledElements()
@@ -380,7 +420,7 @@ class ActionHandler {
    * @param {boolean} options.relative - If true, value is a delta; if false, absolute speed
    * @param {string} options.source - 'internal' (user action) or 'external' (site/other)
    */
-  adjustSpeed(video, value, options = {}) {
+  adjustSpeed(video: HTMLMediaElement, value: number, options: SpeedAdjustmentOptions = {}): void {
     return window.VSC.logger.withContext(video, () => {
       // Validate input
       if (!video || !video.vsc) {
@@ -401,7 +441,11 @@ class ActionHandler {
    * Internal adjustSpeed implementation (context already set)
    * @private
    */
-  _adjustSpeedInternal(video, value, options) {
+  _adjustSpeedInternal(
+    video: HTMLMediaElement,
+    value: number,
+    options: SpeedAdjustmentOptions
+  ): void {
     const { relative = false, source = 'internal' } = options;
 
     // Calculate target speed
@@ -443,7 +487,7 @@ class ActionHandler {
    * Get user's preferred speed, respecting rememberSpeed setting.
    * @returns {number} Preferred speed (lastSpeed when remembering, 1.0 otherwise)
    */
-  getPreferredSpeed() {
+  getPreferredSpeed(): number {
     if (this.config.settings.rememberSpeed) {
       return this.config.settings.lastSpeed || 1.0;
     }
@@ -457,7 +501,7 @@ class ActionHandler {
    * @param {number} speed - Target speed
    * @param {string} source - Change source: 'internal' (user/extension) or 'external' (site)
    */
-  setSpeed(video, speed, source = 'internal') {
+  setSpeed(video: HTMLMediaElement, speed: number, source = 'internal'): void {
     const speedValue = speed.toFixed(2);
     const numericSpeed = Number(speedValue);
 
