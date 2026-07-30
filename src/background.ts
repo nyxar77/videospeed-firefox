@@ -7,8 +7,43 @@ import {
   type ExtensionApi,
 } from './utils/extension-api.ts';
 import type { KeyBinding, StoredSettings } from './types/settings.ts';
+import { TimeSavedAccumulator } from './core/time-saved-accumulator.ts';
+import { TIME_SAVED_STORAGE_KEY } from './utils/time-saved.ts';
 
 const extensionApi = getExtensionApi() as ExtensionApi;
+const MAX_TIME_SAVED_DELTA_MS = 15 * 60 * 1000;
+const timeSavedAccumulator = new TimeSavedAccumulator({
+  async read(): Promise<number> {
+    const storage = await storageGet<Record<string, unknown>>({ [TIME_SAVED_STORAGE_KEY]: 0 });
+    const existing = storage[TIME_SAVED_STORAGE_KEY];
+    return typeof existing === 'number' && Number.isFinite(existing) ? existing : 0;
+  },
+  write(milliseconds: number): Promise<void> {
+    return storageSet({ [TIME_SAVED_STORAGE_KEY]: milliseconds });
+  },
+});
+
+function addTimeSaved(milliseconds: number): void {
+  void timeSavedAccumulator
+    .add(milliseconds)
+    .catch((error) => console.error('[VSC] Failed to store saved-time statistic:', error));
+}
+
+extensionApi.runtime.onMessage.addListener((request: unknown) => {
+  if (!request || typeof request !== 'object') {
+    return;
+  }
+  const { type, milliseconds } = request as { type?: unknown; milliseconds?: unknown };
+  if (
+    type === 'VSC_ADD_TIME_SAVED' &&
+    typeof milliseconds === 'number' &&
+    Number.isInteger(milliseconds) &&
+    milliseconds > 0 &&
+    milliseconds <= MAX_TIME_SAVED_DELTA_MS
+  ) {
+    addTimeSaved(milliseconds);
+  }
+});
 
 function getActionIconDirectory(): string {
   const defaultIcon = extensionApi.runtime.getManifest?.().action?.default_icon;

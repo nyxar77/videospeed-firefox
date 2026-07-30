@@ -7,6 +7,7 @@ import {
 } from '../../utils/extension-api.ts';
 import type { KeyBinding, StoredSettings } from '../../types/settings.ts';
 import { applyThemeToDocument } from '../controller-themes.ts';
+import { formatSavedTime, TIME_SAVED_STORAGE_KEY } from '../../utils/time-saved.ts';
 
 interface PopupSettings extends StoredSettings {
   enabled?: boolean;
@@ -97,6 +98,9 @@ document.addEventListener('DOMContentLoaded', (): void => {
   function loadSettingsAndInitialize(): void {
     storageGet<PopupSettings>(null).then((storage) => {
       applyThemeToDocument(document, storage.controllerTheme);
+      getElement<HTMLElement>('#time-saved').textContent = formatSavedTime(
+        storage[TIME_SAVED_STORAGE_KEY]
+      );
 
       // Find the step values from keyBindings
       let slowerStep = 0.1;

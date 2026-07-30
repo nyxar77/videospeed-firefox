@@ -43,6 +43,7 @@ class VideoController {
   handlePlay?: EventListener;
   handleSeek?: EventListener;
   targetObserver?: MutationObserver;
+  timeSavedTracker?: { remove(): void };
 
   constructor(
     target: HTMLMediaElement,
@@ -88,6 +89,11 @@ class VideoController {
 
     // Set up event handlers
     this.setupEventHandlers();
+
+    // Statistics are intentionally isolated from speed and controller logic.
+    if (typeof window.VSC.TimeSavedTracker === 'function') {
+      this.timeSavedTracker = new window.VSC.TimeSavedTracker(this.video);
+    }
 
     // Set up mutation observer for src changes
     this.setupMutationObserver();
@@ -377,6 +383,8 @@ class VideoController {
     if (this.targetObserver) {
       this.targetObserver.disconnect();
     }
+
+    this.timeSavedTracker?.remove();
 
     // Remove from state manager
     if (window.VSC.stateManager) {

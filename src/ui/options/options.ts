@@ -12,6 +12,8 @@ import '../../core/storage-manager.ts';
 import '../../core/settings.ts';
 import type { KeyBinding, KeyModifiers, Settings } from '../../types/settings.ts';
 import { createSettingsExport, parseSettingsImport } from '../../utils/settings-transfer.ts';
+import { storageGet, storageSet } from '../../utils/extension-api.ts';
+import { formatSavedTime, TIME_SAVED_STORAGE_KEY } from '../../utils/time-saved.ts';
 import {
   applyThemeToDocument,
   CATPPUCCIN_ACCENTS,
@@ -68,6 +70,11 @@ let keyBindings: KeyBinding[] = [];
 let validationTimeout: ReturnType<typeof setTimeout> | null = null;
 let selectedCatppuccinTheme: ControllerTheme = 'catppuccin-mocha-mauve';
 let pendingImportedSettings: Partial<Settings> | null = null;
+
+async function loadTimeSaved(): Promise<void> {
+  const storage = await storageGet<Record<string, unknown>>({ [TIME_SAVED_STORAGE_KEY]: 0 });
+  getElement('timeSavedTotal').textContent = formatSavedTime(storage[TIME_SAVED_STORAGE_KEY]);
+}
 
 function getSelectedControllerTheme(): ControllerTheme {
   const mode = getElement<HTMLSelectElement>('controllerTheme').value;
@@ -1145,6 +1152,7 @@ document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
   });
 
   await restore_options();
+  await loadTimeSaved();
 
   const saveBtn = getElement('save');
 
@@ -1225,6 +1233,11 @@ document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
   });
 
   getElement('importFile').addEventListener('change', handleImportFile);
+
+  getElement('resetTimeSaved').addEventListener('click', async () => {
+    await storageSet({ [TIME_SAVED_STORAGE_KEY]: 0 });
+    getElement('timeSavedTotal').textContent = '0s';
+  });
 
   getElement('tab-settings').addEventListener('click', () => switchTab('settings'));
   getElement('tab-advanced').addEventListener('click', () => switchTab('advanced'));

@@ -132,6 +132,16 @@ vsc-controller { top: 50px !important; }
           <input id="controllerOpacity" type="text" value="" />
         </div>
         <div class="row">
+          <label for="resetTimeSaved"
+            >Time saved<br />
+            <em>Actual wall-clock time avoided while watching accelerated media.</em>
+          </label>
+          <div class="saved-time-controls">
+            <strong id="timeSavedTotal">0s</strong>
+            <button id="resetTimeSaved" type="button">Reset</button>
+          </div>
+        </div>
+        <div class="row">
           <label for="controllerButtonSize"
             >Controller button size<br />
             <em>Font size in pixels for the speed display and buttons. Default: 14</em>

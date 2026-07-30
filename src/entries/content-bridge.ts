@@ -13,6 +13,7 @@
 import { isBlacklisted } from '../utils/blacklist.ts';
 import {
   getExtensionApi,
+  runtimeSendMessage,
   storageGet,
   storageSet,
   type ExtensionApi,
@@ -24,6 +25,7 @@ import type { StorageChanges, StoredSettings } from '../types/settings.ts';
 // Duplicated from constants.ts (ISOLATED world can't import page modules).
 const SPEED_MIN = 0.07;
 const SPEED_MAX = 16;
+const MAX_TIME_SAVED_DELTA_MS = 15 * 60 * 1000;
 
 const docEl = document.documentElement;
 let bridgeInitialized = false;
@@ -172,6 +174,25 @@ async function init() {
       }
     };
     docEl.addEventListener('VSC_WRITE_STORAGE', handleWriteStorage as EventListener);
+
+    // Statistics are emitted by the MAIN-world tracker as small, batched
+    // deltas. The bridge validates their size and hands aggregation to the
+    // background context so multiple tabs cannot overwrite one another.
+    const handleTimeSaved = (e: CustomEvent<{ milliseconds?: unknown }>): void => {
+      const milliseconds = e.detail?.milliseconds;
+      if (
+        typeof milliseconds !== 'number' ||
+        !Number.isInteger(milliseconds) ||
+        milliseconds <= 0 ||
+        milliseconds > MAX_TIME_SAVED_DELTA_MS
+      ) {
+        return;
+      }
+      void runtimeSendMessage({ type: 'VSC_ADD_TIME_SAVED', milliseconds }).catch(() => {
+        // Navigation can invalidate a content-script context after a final flush.
+      });
+    };
+    docEl.addEventListener('VSC_ADD_TIME_SAVED', handleTimeSaved as EventListener);
   } catch (error) {
     console.error('[VSC] Bridge init failed:', error);
     // Never leave the MAIN-world initializer waiting for a response forever.

@@ -36,6 +36,7 @@ export interface ExtensionApi {
     onInstalled: ApiEvent<() => void | Promise<void>>;
     onStartup: ApiEvent<() => void | Promise<void>>;
     onMessage: ApiEvent<(request: unknown) => void>;
+    sendMessage?(message: unknown, callback?: (response: unknown) => void): Promise<unknown> | void;
   };
 }
 
@@ -182,5 +183,19 @@ export function openOptionsPage(): Promise<void> {
   }
   return callbackCall<void>(
     api.runtime.openOptionsPage.bind(api.runtime) as (...args: unknown[]) => void
+  );
+}
+
+export function runtimeSendMessage(message: unknown): Promise<void> {
+  const api = currentApi();
+  if (!api?.runtime.sendMessage) {
+    return Promise.reject(new Error('Extension runtime messaging is unavailable'));
+  }
+  if (usingBrowserPromises()) {
+    return api.runtime.sendMessage(message) as Promise<void>;
+  }
+  return callbackCall<void>(
+    api.runtime.sendMessage.bind(api.runtime) as (...args: unknown[]) => void,
+    [message]
   );
 }

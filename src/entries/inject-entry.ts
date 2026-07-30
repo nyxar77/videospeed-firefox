@@ -28,6 +28,7 @@ import '../observers/mutation-observer.ts';
 
 // Core functionality - depends on settings and observers
 import '../core/action-handler.ts';
+import '../core/time-saved-tracker.ts';
 import '../core/video-controller.ts';
 
 // UI components - depends on core functionality
