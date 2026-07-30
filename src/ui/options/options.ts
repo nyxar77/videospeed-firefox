@@ -10,6 +10,7 @@ import '../../utils/logger.ts';
 // Storage and settings - depends on utils
 import '../../core/storage-manager.ts';
 import '../../core/settings.ts';
+import type { KeyBinding, KeyModifiers, Settings } from '../../types/settings.ts';
 
 // UI helpers
 import { createRow } from './row-renderer.ts';
@@ -17,16 +18,57 @@ import { createRow } from './row-renderer.ts';
 // Initialize global namespace for options page
 window.VSC = window.VSC || {};
 
-let keyBindings = [];
+type Any = any;
 
-function appendHighlightToken(parent, className, text) {
+interface KeyInput extends HTMLInputElement {
+  code?: string | null;
+  keyCode?: number | null;
+  displayKey?: string | null;
+  modifiers?: KeyModifiers;
+}
+
+interface SiteRuleForm {
+  pattern: string;
+  enabled: boolean;
+  speed: number | null;
+}
+
+interface ColumnSpec {
+  key: string;
+  type: 'text' | 'checkbox' | 'select';
+  className: string;
+  placeholder?: string;
+  default?: unknown;
+  options?: Array<[string, string]>;
+}
+
+function getElement<T = Any>(id: string): T {
+  const element = document['getElementById'](id);
+  if (!element) {
+    throw new Error(`Options element not found: #${id}`);
+  }
+  return element as T;
+}
+
+function queryAll<T = Any>(selector: string): T[] {
+  return Array.from(document['querySelectorAll'](selector)) as T[];
+}
+
+let keyBindings: KeyBinding[] = [];
+let validationTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function appendHighlightToken(parent: HTMLElement, className: string, text: string): void {
   const span = document.createElement('span');
   span.className = className;
   span.textContent = text;
   parent.appendChild(span);
 }
 
-function appendHighlightedCSS(parent, text) {
+function appendHighlightedCSS(parent: HTMLElement, text: string): void {
   const tokenPattern = /\/\*[\s\S]*?(?:\*\/|$)|[{}]|([\w-]+)(?=\s*:)|:\s*([^;{}]+)(;?)/g;
   let lastIndex = 0;
 
@@ -58,9 +100,9 @@ function appendHighlightedCSS(parent, text) {
 }
 
 /** Sync textarea content to the highlighted <pre> overlay */
-function updateCSSHighlight() {
-  const textarea = document.getElementById('controllerCSS');
-  const highlight = document.getElementById('cssHighlight');
+function updateCSSHighlight(): void {
+  const textarea = getElement('controllerCSS');
+  const highlight = getElement('cssHighlight');
   if (textarea && highlight) {
     highlight.replaceChildren();
     appendHighlightedCSS(highlight, `${textarea.value}\n`);
@@ -68,9 +110,9 @@ function updateCSSHighlight() {
 }
 
 /** Sync scroll position between textarea and highlight overlay */
-function syncCSSScroll() {
-  const textarea = document.getElementById('controllerCSS');
-  const highlight = document.getElementById('cssHighlight');
+function syncCSSScroll(): void {
+  const textarea = getElement('controllerCSS');
+  const highlight = getElement('cssHighlight');
   if (textarea && highlight) {
     highlight.scrollTop = textarea.scrollTop;
     highlight.scrollLeft = textarea.scrollLeft;
@@ -78,7 +120,7 @@ function syncCSSScroll() {
 }
 
 // Action labels — shared by predefined and custom shortcut rows
-const ACTION_OPTIONS = [
+const ACTION_OPTIONS: Array<[string, string]> = [
   ['slower', 'Decrease speed'],
   ['faster', 'Increase speed'],
   ['rewind', 'Rewind'],
@@ -95,14 +137,14 @@ const ACTION_OPTIONS = [
 ];
 
 // Column spec for shortcut rows (used by createRow)
-const SHORTCUT_COLUMNS = [
+const SHORTCUT_COLUMNS: ColumnSpec[] = [
   { key: 'action', type: 'select', className: 'customDo', options: ACTION_OPTIONS },
   { key: 'keyInput', type: 'text', className: 'customKey', placeholder: 'press a key' },
   { key: 'value', type: 'text', className: 'customValue', placeholder: 'value (0.10)' },
 ];
 
 // Column spec for site rule rows
-const SITE_RULE_COLUMNS = [
+const SITE_RULE_COLUMNS: ColumnSpec[] = [
   { key: 'pattern', type: 'text', className: 'rulePattern', placeholder: 'youtube.com or /regex/' },
   { key: 'disabled', type: 'checkbox', className: 'ruleDisabled', default: false },
   { key: 'speed', type: 'text', className: 'ruleSpeed', placeholder: '(global)' },
@@ -121,7 +163,7 @@ const SITE_RULE_COLUMNS = [
  * @param {CSSStyleSheet} parsedSheet - Sheet from replaceSync (for count comparison)
  * @returns {string[]} Array of rule-block snippets that failed to parse
  */
-function findDroppedRules(css, parsedSheet) {
+function findDroppedRules(css: string, parsedSheet: CSSStyleSheet): string[] {
   // Split into top-level blocks by tracking brace depth
   const blocks = [];
   let depth = 0;
@@ -174,9 +216,9 @@ function findDroppedRules(css, parsedSheet) {
   return dropped;
 }
 
-function validateControllerCSS(css) {
-  const textarea = document.getElementById('controllerCSS');
-  const msg = document.getElementById('cssValidation');
+function validateControllerCSS(css: string): boolean {
+  const textarea = getElement('controllerCSS');
+  const msg = getElement('cssValidation');
   textarea.classList.remove('css-error', 'css-warn');
   msg.classList.remove('error', 'warn');
   msg.textContent = '';
@@ -211,17 +253,17 @@ function validateControllerCSS(css) {
     }
 
     return true;
-  } catch (e) {
+  } catch (e: unknown) {
     textarea.classList.add('css-error');
     msg.classList.add('error');
-    msg.textContent = `Syntax error: ${e.message.replace(/^Failed to execute.*: /, '')}`;
+    msg.textContent = `Syntax error: ${getErrorMessage(e).replace(/^Failed to execute.*: /, '')}`;
     return false;
   }
 }
 
 // TODO(v3): Remove keyCodeAliases once all bindings have displayKey field
 // and the legacy `key` integer field is dropped from the schema.
-const keyCodeAliases = {
+const keyCodeAliases: Record<string, string> = {
   0: 'null',
   null: 'null',
   undefined: 'null',
@@ -283,14 +325,15 @@ const keyCodeAliases = {
 };
 
 // Keyboard layout map — resolved once on page load, used for display labels
-let layoutMap = null;
+let layoutMap: Any = null;
 (async function initLayoutMap() {
   try {
-    if (navigator.keyboard && navigator.keyboard.getLayoutMap) {
-      layoutMap = await navigator.keyboard.getLayoutMap();
+    const keyboard = (navigator as Any).keyboard;
+    if (keyboard && keyboard.getLayoutMap) {
+      layoutMap = await keyboard.getLayoutMap();
       // Re-render display labels if layout changes mid-session
-      navigator.keyboard.addEventListener('layoutchange', async () => {
-        layoutMap = await navigator.keyboard.getLayoutMap();
+      keyboard.addEventListener('layoutchange', async () => {
+        layoutMap = await keyboard.getLayoutMap();
       });
     }
   } catch {
@@ -304,7 +347,7 @@ let layoutMap = null;
  * @param {Object} [modifiers] - {ctrl, alt, shift, meta} booleans
  * @returns {string} e.g., "Ctrl + S", "Shift + P", "F10"
  */
-function formatShortcutDisplay(displayKey, modifiers) {
+function formatShortcutDisplay(displayKey: string, modifiers?: KeyModifiers): string {
   if (!displayKey) {
     return 'null';
   }
@@ -333,7 +376,7 @@ function formatShortcutDisplay(displayKey, modifiers) {
  * Resolve the best display label for a binding.
  * Fallback chain: layoutMap → displayKey → keyCodeAliases → code → "null"
  */
-function resolveDisplayLabel(binding) {
+function resolveDisplayLabel(binding: KeyBinding): string {
   // Try layout map first (most accurate for current keyboard)
   if (layoutMap && binding.code) {
     const mapped = layoutMap.get(binding.code);
@@ -351,7 +394,7 @@ function resolveDisplayLabel(binding) {
     return formatShortcutDisplay(derived, binding.modifiers);
   }
   // Legacy v1 binding — fall back to keyCodeAliases
-  const kc = binding.keyCode ?? binding.key;
+  const kc = binding.keyCode ?? binding.key ?? 0;
   return keyCodeAliases[kc] || (kc >= 48 && kc <= 90 ? String.fromCharCode(kc) : `Key ${kc}`);
 }
 
@@ -359,7 +402,7 @@ function resolveDisplayLabel(binding) {
  * Auto-size a key input to fit chord labels like "Ctrl + Shift + S".
  * Falls back to 75px minimum for simple keys.
  */
-function autoSizeKeyInput(input) {
+function autoSizeKeyInput(input: KeyInput): void {
   const minWidth = 75;
   if (!input.value || input.value.length <= 3) {
     input.style.width = `${minWidth}px`;
@@ -377,7 +420,7 @@ function autoSizeKeyInput(input) {
   input.style.width = `${Math.max(minWidth, textWidth + 26)}px`;
 }
 
-function recordKeyPress(e) {
+function recordKeyPress(e: KeyboardEvent & { target: KeyInput }): void {
   // Special handling for backspace and escape (via event.code)
   if (e.code === 'Backspace') {
     e.target.value = '';
@@ -433,7 +476,7 @@ function recordKeyPress(e) {
     : undefined;
 
   // Display formatted shortcut
-  e.target.value = formatShortcutDisplay(e.target.displayKey, e.target.modifiers);
+  e.target.value = formatShortcutDisplay(e.target.displayKey ?? e.key, e.target.modifiers);
   autoSizeKeyInput(e.target);
 
   // Show contextual warnings for problematic modifier combos
@@ -451,23 +494,23 @@ function recordKeyPress(e) {
   e.stopPropagation();
 }
 
-function showWarning(input, message) {
+function showWarning(input: KeyInput, message: string): void {
   clearWarning(input);
   const warn = document.createElement('span');
   warn.className = 'shortcut-warning';
   warn.textContent = message;
   warn.style.cssText = 'display:block;color:#c57600;font-size:11px;margin-top:2px;';
-  input.parentNode.insertBefore(warn, input.nextSibling);
+  input.parentElement?.insertBefore(warn, input.nextSibling);
 }
 
-function clearWarning(input) {
-  const existing = input.parentNode.querySelector('.shortcut-warning');
+function clearWarning(input: KeyInput): void {
+  const existing = input.parentElement?.querySelector('.shortcut-warning');
   if (existing) {
     existing.remove();
   }
 }
 
-function inputFilterNumbersOnly(e) {
+function inputFilterNumbersOnly(e: InputEvent & { target: HTMLInputElement }): void {
   if ((e.inputType === 'insertText' || e.inputType === 'insertFromPaste') && e.data) {
     if (!/^\d+(\.\d*)?$/.test(e.target.value + e.data)) {
       e.preventDefault();
@@ -475,11 +518,11 @@ function inputFilterNumbersOnly(e) {
   }
 }
 
-function inputFocus(e) {
+function inputFocus(e: Event & { target: KeyInput }): void {
   e.target.value = '';
 }
 
-function inputBlur(e) {
+function inputBlur(e: Event & { target: KeyInput }): void {
   // Reconstruct display from stored v2 fields, falling back to legacy
   if (e.target.code) {
     e.target.value = formatShortcutDisplay(
@@ -490,7 +533,7 @@ function inputBlur(e) {
     e.target.value = 'null';
   } else {
     // Legacy fallback
-    const kc = e.target.keyCode;
+    const kc = e.target.keyCode ?? 0;
     e.target.value =
       keyCodeAliases[kc] || (kc >= 48 && kc <= 90 ? String.fromCharCode(kc) : `Key ${kc}`);
   }
@@ -501,7 +544,7 @@ function inputBlur(e) {
  * Populate a shortcut input element with binding data.
  * Sets all v2 fields on the DOM element for round-trip through createKeyBindings.
  */
-function setShortcutInput(input, binding) {
+function setShortcutInput(input: KeyInput, binding: KeyBinding): void {
   input.code = binding.code;
   input.keyCode = binding.keyCode ?? binding.key;
   input.displayKey = binding.displayKey;
@@ -515,16 +558,16 @@ function setShortcutInput(input, binding) {
  * @param {Object} [data] - Optional initial data { action, value }
  * @returns {HTMLElement} The created row
  */
-function add_shortcut(data = {}) {
-  const container = document.getElementById('shortcuts-container');
+function add_shortcut(data: Any = {}): HTMLElement {
+  const container = getElement('shortcuts-container');
   const row = createRow(container, SHORTCUT_COLUMNS, data, {
     className: 'customs',
     removable: true,
   });
   // Hide value input for actions that don't need values
-  const action = data.action || row.querySelector('.customDo').value;
+  const action = data.action || (row.querySelector('.customDo') as HTMLSelectElement).value;
   if (window.VSC.Constants.CUSTOM_ACTIONS_NO_VALUES.includes(action)) {
-    row.querySelector('.customValue').style.display = 'none';
+    (row.querySelector('.customValue') as HTMLElement).style.display = 'none';
   }
   return row;
 }
@@ -534,8 +577,8 @@ function add_shortcut(data = {}) {
  * @param {Object} data - Binding data { action, value, ... }
  * @returns {HTMLElement} The created row
  */
-function add_predefined_shortcut(data) {
-  const container = document.getElementById('shortcuts-container');
+function add_predefined_shortcut(data: KeyBinding): HTMLElement {
+  const container = getElement('shortcuts-container');
   const row = createRow(
     container,
     SHORTCUT_COLUMNS,
@@ -547,13 +590,13 @@ function add_predefined_shortcut(data) {
     }
   );
   // Predefined rows: lock the action dropdown
-  const select = row.querySelector('.customDo');
+  const select = row.querySelector('.customDo') as HTMLSelectElement;
   select.disabled = true;
   // Set key input
-  setShortcutInput(row.querySelector('.customKey'), data);
+  setShortcutInput(row.querySelector('.customKey') as KeyInput, data);
   // Set value input
-  const valueInput = row.querySelector('.customValue');
-  valueInput.value = data.value;
+  const valueInput = row.querySelector('.customValue') as HTMLInputElement;
+  valueInput.value = String(data.value ?? '');
   // Hide value input for actions that don't need values
   if (window.VSC.Constants.CUSTOM_ACTIONS_NO_VALUES.includes(data.action)) {
     valueInput.style.display = 'none';
@@ -561,18 +604,18 @@ function add_predefined_shortcut(data) {
   return row;
 }
 
-function createKeyBindings(item) {
-  const action = item.querySelector('.customDo').value;
-  const input = item.querySelector('.customKey');
-  const value = Number(item.querySelector('.customValue').value);
+function createKeyBindings(item: Any): void {
+  const action = (item.querySelector('.customDo') as HTMLSelectElement).value;
+  const input = item.querySelector('.customKey') as KeyInput;
+  const value = Number((item.querySelector('.customValue') as HTMLInputElement).value);
   const predefined = !!item.id;
 
-  const binding = {
+  const binding: KeyBinding = {
     action: action,
     code: input.code, // PRIMARY — event.code string
-    key: input.keyCode, // OLD field name — integer, downgrade compat
-    keyCode: input.keyCode, // NEW field name — canonical legacy integer
-    displayKey: input.displayKey, // display-friendly from event.key
+    key: input.keyCode ?? undefined, // OLD field name — integer, downgrade compat
+    keyCode: input.keyCode ?? undefined, // NEW field name — canonical legacy integer
+    displayKey: input.displayKey ?? undefined, // display-friendly from event.key
     value: value,
     predefined: predefined,
   };
@@ -592,8 +635,8 @@ function createKeyBindings(item) {
  * @param {Object} [data] - { pattern, enabled, speed }
  * @returns {HTMLElement}
  */
-function add_site_rule(data = { enabled: true }) {
-  const container = document.getElementById('site-rules-container');
+function add_site_rule(data: Any = { enabled: true }): HTMLElement {
+  const container = getElement('site-rules-container');
   const speedDisplay = data.speed !== null && data.speed !== undefined ? data.speed : undefined;
   return createRow(
     container,
@@ -607,7 +650,7 @@ function add_site_rule(data = { enabled: true }) {
  * Parse a speed input string.
  * Returns the numeric value, or null if empty/invalid.
  */
-function parseSpeed(s) {
+function parseSpeed(s: string | number | null | undefined): number | null {
   if (typeof s !== 'string') {
     return s ?? null;
   }
@@ -623,25 +666,25 @@ function parseSpeed(s) {
  * Collect site rules from the DOM.
  * @returns {Array<{pattern: string, enabled: boolean, speed: number|null}>}
  */
-function collectSiteRules() {
-  const container = document.getElementById('site-rules-container');
-  return Array.from(container.querySelectorAll('.row.site-rule'))
-    .map((row) => ({
-      pattern: row.querySelector('.rulePattern').value.trim(),
-      enabled: !row.querySelector('.ruleDisabled').checked,
-      speed: parseSpeed(row.querySelector('.ruleSpeed').value),
+function collectSiteRules(): SiteRuleForm[] {
+  const container = getElement('site-rules-container');
+  return (Array.from(container.querySelectorAll('.row.site-rule')) as Element[])
+    .map((row: Element) => ({
+      pattern: (row.querySelector('.rulePattern') as HTMLInputElement).value.trim(),
+      enabled: !(row.querySelector('.ruleDisabled') as HTMLInputElement).checked,
+      speed: parseSpeed((row.querySelector('.ruleSpeed') as HTMLInputElement).value),
     }))
-    .filter((r) => r.pattern);
+    .filter((r: SiteRuleForm) => r.pattern);
 }
 
 // Validates settings before saving
-function validate() {
+function validate(): boolean {
   let valid = true;
-  const status = document.getElementById('status');
+  const status = getElement('status');
 
   // Clear any existing timeout for validation errors
-  if (window.validationTimeout) {
-    clearTimeout(window.validationTimeout);
+  if (validationTimeout) {
+    clearTimeout(validationTimeout);
   }
 
   const regEndsWithFlags = window.VSC.Constants.regEndsWithFlags;
@@ -667,7 +710,7 @@ function validate() {
         status.textContent = `Error: Invalid site rule regex: "${rule.pattern}". Unable to save.`;
         status.classList.add('show', 'error');
         valid = false;
-        window.validationTimeout = setTimeout(() => {
+        validationTimeout = setTimeout(() => {
           status.textContent = '';
           status.classList.remove('show', 'error');
         }, 5000);
@@ -686,7 +729,7 @@ function validate() {
         } and ${window.VSC.Constants.SPEED_LIMITS.MAX}.`;
         status.classList.add('show', 'error');
         valid = false;
-        window.validationTimeout = setTimeout(() => {
+        validationTimeout = setTimeout(() => {
           status.textContent = '';
           status.classList.remove('show', 'error');
         }, 5000);
@@ -699,28 +742,28 @@ function validate() {
 }
 
 // Saves options using VideoSpeedConfig system
-async function save_options() {
+async function save_options(): Promise<void> {
   if (validate() === false) {
     return;
   }
 
-  const status = document.getElementById('status');
+  const status = getElement('status');
   status.textContent = '';
   status.classList.remove('show', 'success', 'error');
 
   try {
     keyBindings = [];
-    Array.from(document.querySelectorAll('.customs')).forEach((item) => createKeyBindings(item));
+    Array.from(queryAll('.customs')).forEach((item) => createKeyBindings(item));
 
-    const rememberSpeed = document.getElementById('rememberSpeed').checked;
-    const exclusiveKeys = document.getElementById('exclusiveKeys').checked;
-    const audioBoolean = document.getElementById('audioBoolean').checked;
-    const startHidden = document.getElementById('startHidden').checked;
-    const controllerOpacity = Number(document.getElementById('controllerOpacity').value);
-    const controllerButtonSize = Number(document.getElementById('controllerButtonSize').value);
-    const logLevel = parseInt(document.getElementById('logLevel').value);
+    const rememberSpeed = getElement('rememberSpeed').checked;
+    const exclusiveKeys = getElement('exclusiveKeys').checked;
+    const audioBoolean = getElement('audioBoolean').checked;
+    const startHidden = getElement('startHidden').checked;
+    const controllerOpacity = Number(getElement('controllerOpacity').value);
+    const controllerButtonSize = Number(getElement('controllerButtonSize').value);
+    const logLevel = parseInt(getElement('logLevel').value);
     const siteRules = collectSiteRules();
-    const customCSS = document.getElementById('controllerCSS').value;
+    const customCSS = getElement('controllerCSS').value;
 
     // Validate CSS syntax — block save on parse error
     if (!validateControllerCSS(customCSS)) {
@@ -751,7 +794,7 @@ async function save_options() {
     }
 
     // Use VideoSpeedConfig to save settings (sync storage)
-    const settingsToSave = {
+    const settingsToSave: Partial<Settings> = {
       rememberSpeed: rememberSpeed,
       exclusiveKeys: exclusiveKeys,
       audioBoolean: audioBoolean,
@@ -777,7 +820,7 @@ async function save_options() {
     }
   } catch (error) {
     console.error('Failed to save options:', error);
-    status.textContent = `Error saving options: ${error.message}`;
+    status.textContent = `Error saving options: ${getErrorMessage(error)}`;
     status.classList.add('show', 'error');
     setTimeout(() => {
       status.textContent = '';
@@ -787,7 +830,7 @@ async function save_options() {
 }
 
 // Restores options using VideoSpeedConfig system
-async function restore_options() {
+async function restore_options(): Promise<void> {
   try {
     // Ensure VideoSpeedConfig singleton is initialized
     if (!window.VSC.videoSpeedConfig) {
@@ -798,20 +841,20 @@ async function restore_options() {
     await window.VSC.videoSpeedConfig.load();
     const storage = window.VSC.videoSpeedConfig.settings;
 
-    document.getElementById('rememberSpeed').checked = storage.rememberSpeed;
-    document.getElementById('exclusiveKeys').checked = storage.exclusiveKeys;
-    document.getElementById('audioBoolean').checked = storage.audioBoolean;
-    document.getElementById('startHidden').checked = storage.startHidden;
-    document.getElementById('controllerOpacity').value = storage.controllerOpacity;
-    document.getElementById('controllerButtonSize').value = storage.controllerButtonSize;
-    document.getElementById('logLevel').value = storage.logLevel;
-    document.getElementById('controllerCSS').value = storage.customCSS ?? '';
+    getElement('rememberSpeed').checked = storage.rememberSpeed;
+    getElement('exclusiveKeys').checked = storage.exclusiveKeys;
+    getElement('audioBoolean').checked = storage.audioBoolean;
+    getElement('startHidden').checked = storage.startHidden;
+    getElement('controllerOpacity').value = storage.controllerOpacity;
+    getElement('controllerButtonSize').value = storage.controllerButtonSize;
+    getElement('logLevel').value = storage.logLevel;
+    getElement('controllerCSS').value = storage.customCSS ?? '';
 
     // Render site rules
     const siteRules = storage.siteRules || window.VSC.Constants.DEFAULT_SETTINGS.siteRules;
-    const rulesContainer = document.getElementById('site-rules-container');
+    const rulesContainer = getElement('site-rules-container');
     // Clear existing rule rows but keep the header
-    rulesContainer.querySelectorAll('.row.site-rule').forEach((r) => r.remove());
+    rulesContainer.querySelectorAll('.row.site-rule').forEach((r: Element) => r.remove());
     for (const rule of siteRules) {
       add_site_rule(rule);
     }
@@ -820,7 +863,7 @@ async function restore_options() {
     const bindings = storage.keyBindings || window.VSC.Constants.DEFAULT_SETTINGS.keyBindings;
 
     // Clear existing shortcut rows (handles restore_defaults re-render)
-    const shortcutsContainer = document.getElementById('shortcuts-container');
+    const shortcutsContainer = getElement('shortcuts-container');
     shortcutsContainer.replaceChildren();
 
     for (const item of bindings) {
@@ -828,23 +871,24 @@ async function restore_options() {
         add_predefined_shortcut(item);
       } else {
         const row = add_shortcut({ action: item.action, value: item.value });
-        setShortcutInput(row.querySelector('.customKey'), item);
+        setShortcutInput(row.querySelector('.customKey') as KeyInput, item);
       }
     }
   } catch (error) {
     console.error('Failed to restore options:', error);
-    document.getElementById('status').textContent = `Error loading options: ${error.message}`;
-    document.getElementById('status').classList.add('show', 'error');
+    getElement<HTMLElement>('status').textContent =
+      `Error loading options: ${getErrorMessage(error)}`;
+    getElement('status').classList.add('show', 'error');
     setTimeout(() => {
-      document.getElementById('status').textContent = '';
-      document.getElementById('status').classList.remove('show', 'error');
+      getElement('status').textContent = '';
+      getElement('status').classList.remove('show', 'error');
     }, 3000);
   }
 }
 
-async function restore_defaults() {
+async function restore_defaults(): Promise<void> {
+  const status = getElement<HTMLElement>('status');
   try {
-    const status = document.getElementById('status');
     status.textContent = 'Restoring defaults...';
     status.classList.remove('success', 'error');
     status.classList.add('show');
@@ -874,7 +918,7 @@ async function restore_defaults() {
     }, 2000);
   } catch (error) {
     console.error('Failed to restore defaults:', error);
-    status.textContent = `Error restoring defaults: ${error.message}`;
+    status.textContent = `Error restoring defaults: ${getErrorMessage(error)}`;
     status.classList.add('show', 'error');
     setTimeout(() => {
       status.textContent = '';
@@ -886,8 +930,8 @@ async function restore_defaults() {
 /**
  * Export all settings as a JSON file download.
  */
-async function export_settings() {
-  const status = document.getElementById('status');
+async function export_settings(): Promise<void> {
+  const status = getElement('status');
   try {
     // Ensure config is loaded
     if (!window.VSC.videoSpeedConfig) {
@@ -915,7 +959,7 @@ async function export_settings() {
     }, 2000);
   } catch (error) {
     console.error('Failed to export settings:', error);
-    status.textContent = `Error exporting settings: ${error.message}`;
+    status.textContent = `Error exporting settings: ${getErrorMessage(error)}`;
     status.classList.add('show', 'error');
     setTimeout(() => {
       status.textContent = '';
@@ -927,13 +971,13 @@ async function export_settings() {
 /**
  * Import settings from a JSON file. Validates structure before applying.
  */
-function import_settings() {
-  document.getElementById('importFile').click();
+function import_settings(): void {
+  getElement('importFile').click();
 }
 
-async function handleImportFile(event) {
-  const status = document.getElementById('status');
-  const file = event.target.files[0];
+async function handleImportFile(event: Event & { target: HTMLInputElement }): Promise<void> {
+  const status = getElement('status');
+  const file = event.target.files?.[0];
   if (!file) {
     return;
   }
@@ -943,10 +987,10 @@ async function handleImportFile(event) {
 
   try {
     const text = await file.text();
-    let imported;
+    let imported: Any;
     try {
       imported = JSON.parse(text);
-    } catch (e) {
+    } catch (e: unknown) {
       throw new Error('File is not valid JSON', { cause: e });
     }
 
@@ -967,7 +1011,7 @@ async function handleImportFile(event) {
     }
 
     // Remove custom shortcut rows before reloading UI
-    document.querySelectorAll('.removeParent').forEach((button) => {
+    queryAll('.removeParent').forEach((button) => {
       button.click();
     });
 
@@ -983,7 +1027,7 @@ async function handleImportFile(event) {
     }, 2000);
   } catch (error) {
     console.error('Failed to import settings:', error);
-    status.textContent = `Import failed: ${error.message}`;
+    status.textContent = `Import failed: ${getErrorMessage(error)}`;
     status.classList.add('show', 'error');
     setTimeout(() => {
       status.textContent = '';
@@ -992,23 +1036,23 @@ async function handleImportFile(event) {
   }
 }
 
-function switchTab(tabName) {
+function switchTab(tabName: string): void {
   ['settings', 'advanced', 'faq'].forEach((name) => {
-    document.getElementById(`tab-${name}`).classList.toggle('active', name === tabName);
-    document.getElementById(`panel-${name}`).style.display = name === tabName ? '' : 'none';
+    getElement(`tab-${name}`).classList.toggle('active', name === tabName);
+    getElement(`panel-${name}`).style.display = name === tabName ? '' : 'none';
   });
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
   // Optional: Set up storage error monitoring for debugging/telemetry
-  window.VSC.StorageManager.onError((error, data) => {
+  window.VSC.StorageManager.onError((error: Error, data: unknown) => {
     // Log to console for debugging, could also send telemetry
     console.warn('Storage operation failed:', error.message, data);
   });
 
   await restore_options();
 
-  const saveBtn = document.getElementById('save');
+  const saveBtn = getElement('save');
 
   // Dirty-state tracking: green button when unsaved changes exist,
   // dimmed briefly after save to confirm the action landed.
@@ -1026,50 +1070,50 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.body.addEventListener('input', markDirty);
   document.body.addEventListener('change', markDirty);
 
-  saveBtn.addEventListener('click', async (e) => {
+  saveBtn.addEventListener('click', async (e: MouseEvent) => {
     e.preventDefault();
     await save_options();
     markClean();
   });
 
-  document.getElementById('add').addEventListener('click', () => {
+  getElement('add').addEventListener('click', () => {
     add_shortcut();
     markDirty();
   });
-  document.getElementById('add-site-rule').addEventListener('click', () => {
+  getElement('add-site-rule').addEventListener('click', () => {
     add_site_rule();
     markDirty();
   });
 
-  document.getElementById('restore').addEventListener('click', async (e) => {
+  getElement('restore').addEventListener('click', async (e: MouseEvent) => {
     e.preventDefault();
     await restore_defaults();
     markDirty();
   });
 
-  document.getElementById('export').addEventListener('click', (e) => {
+  getElement('export').addEventListener('click', (e: MouseEvent) => {
     e.preventDefault();
     export_settings();
   });
 
-  document.getElementById('import').addEventListener('click', (e) => {
+  getElement('import').addEventListener('click', (e: MouseEvent) => {
     e.preventDefault();
     import_settings();
   });
 
-  document.getElementById('importFile').addEventListener('change', handleImportFile);
+  getElement('importFile').addEventListener('change', handleImportFile);
 
-  document.getElementById('tab-settings').addEventListener('click', () => switchTab('settings'));
-  document.getElementById('tab-advanced').addEventListener('click', () => switchTab('advanced'));
-  document.getElementById('tab-faq').addEventListener('click', () => switchTab('faq'));
+  getElement('tab-settings').addEventListener('click', () => switchTab('settings'));
+  getElement('tab-advanced').addEventListener('click', () => switchTab('advanced'));
+  getElement('tab-faq').addEventListener('click', () => switchTab('faq'));
 
   // Split button dropdown
-  const splitMenu = document.getElementById('split-menu');
-  document.getElementById('split-toggle').addEventListener('click', () => {
+  const splitMenu = getElement('split-menu');
+  getElement('split-toggle').addEventListener('click', () => {
     splitMenu.hidden = !splitMenu.hidden;
   });
-  document.addEventListener('click', (e) => {
-    if (!e.target.closest('.split-button')) {
+  document.addEventListener('click', (e: MouseEvent) => {
+    if (!(e.target as Element | null)?.closest('.split-button')) {
       splitMenu.hidden = true;
     }
   });
@@ -1079,11 +1123,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // CSS editor: live validation (debounced) + syntax highlighting + scroll sync
-  const cssTextarea = document.getElementById('controllerCSS');
-  let cssValidationTimer;
+  const cssTextarea = getElement('controllerCSS');
+  let cssValidationTimer: ReturnType<typeof setTimeout> | null = null;
   cssTextarea.addEventListener('input', () => {
     updateCSSHighlight();
-    clearTimeout(cssValidationTimer);
+    if (cssValidationTimer) {
+      clearTimeout(cssValidationTimer);
+    }
     cssValidationTimer = setTimeout(() => {
       validateControllerCSS(cssTextarea.value);
     }, 300);
@@ -1095,16 +1141,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   validateControllerCSS(cssTextarea.value);
 
   // About and feedback button event listeners
-  document.getElementById('about').addEventListener('click', () => {
+  getElement('about').addEventListener('click', () => {
     window.open('https://github.com/igrigorik/videospeed');
   });
 
-  document.getElementById('feedback').addEventListener('click', () => {
+  getElement('feedback').addEventListener('click', () => {
     window.open('https://github.com/igrigorik/videospeed/issues');
   });
 
-  function eventCaller(event, className, funcName) {
-    if (!event.target.classList.contains(className)) {
+  function eventCaller(event: Event, className: string, funcName: (event: Any) => void): void {
+    const target = event.target as HTMLElement | null;
+    if (!target?.classList.contains(className)) {
       return;
     }
     funcName(event);
@@ -1124,17 +1171,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
   document.addEventListener('click', (event) => {
     eventCaller(event, 'removeParent', () => {
-      event.target.closest('.row').remove();
+      (event.target as HTMLElement).closest('.row')?.remove();
       markDirty();
     });
   });
   document.addEventListener('change', (event) => {
     eventCaller(event, 'customDo', () => {
-      const row = event.target.closest('.row');
-      const valueInput = row.querySelector('.customValue');
-      if (window.VSC.Constants.CUSTOM_ACTIONS_NO_VALUES.includes(event.target.value)) {
+      const row = (event.target as HTMLElement).closest('.row');
+      if (!row) {
+        return;
+      }
+      const valueInput = row.querySelector('.customValue') as HTMLInputElement;
+      if (
+        window.VSC.Constants.CUSTOM_ACTIONS_NO_VALUES.includes(
+          (event.target as HTMLSelectElement).value
+        )
+      ) {
         valueInput.style.display = 'none';
-        valueInput.value = 0;
+        valueInput.value = '0';
       } else {
         valueInput.style.display = 'inline-block';
       }

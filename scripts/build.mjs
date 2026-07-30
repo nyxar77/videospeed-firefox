@@ -118,7 +118,7 @@ async function build() {
         inject: 'src/entries/inject-entry.js',
         background: 'src/background.ts',
         'ui/popup/popup': 'src/ui/popup/popup.ts',
-        'ui/options/options': 'src/ui/options/options.js',
+        'ui/options/options': 'src/ui/options/options.ts',
       },
       outdir: 'dist',
     };
