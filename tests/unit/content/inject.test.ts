@@ -256,6 +256,21 @@ describe('Inject', () => {
     }
   });
 
+  it('does not let delayed settings block controller startup', async () => {
+    extension = window.VSC_controller;
+    const neverResolves = new Promise(() => {});
+
+    vi.useFakeTimers();
+    try {
+      const ready = extension.waitForStartupSettings(neverResolves);
+      await vi.advanceTimersByTimeAsync(200);
+
+      await expect(ready).resolves.toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('onVideoFound defers controller when video has no src (no-source placeholder)', () => {
     extension = window.VSC_controller;
     expect(extension).toBeDefined();

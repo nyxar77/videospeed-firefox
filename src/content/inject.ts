@@ -49,6 +49,10 @@ interface VscMessage {
   payload?: { speed?: number; delta?: number };
 }
 
+// The isolated bridge normally supplies settings in a few milliseconds. Do
+// not let a cold or stalled Firefox storage backend block the page runtime.
+const STARTUP_SETTINGS_DEADLINE_MS = 200;
+
 class VideoSpeedExtension {
   config: ConfigLike | null = null;
   actionHandler: ActionHandlerLike | null = null;
@@ -163,7 +167,8 @@ class VideoSpeedExtension {
 
       const config = window.VSC.videoSpeedConfig as ConfigLike;
       this.config = config;
-      await config.load();
+      const settingsLoad = config.load();
+      const settingsReady = await this.waitForStartupSettings(settingsLoad);
 
       if (lifecycleId !== this._lifecycleId) {
         return;
@@ -178,12 +183,65 @@ class VideoSpeedExtension {
 
       // Begin DOM work as soon as the content script has the settings.
       this.deferDOMWork(document);
+
+      if (!settingsReady) {
+        this.logger.warn(
+          'Settings load is delayed; starting controller with defaults until Firefox storage responds'
+        );
+        void settingsLoad.then(() => this.applyLateSettings(document, lifecycleId));
+      }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       const stack = error instanceof Error ? error.stack : undefined;
       this.logger?.error(`Failed to initialize Video Speed Controller: ${message}`);
       this.logger?.error(`Error stack: ${stack}`);
     }
+  }
+
+  /**
+   * Wait briefly for persisted settings, then let the controller start with
+   * the already-safe default configuration. Firefox can defer storage until
+   * another extension surface (such as the popup) wakes its backend.
+   */
+  waitForStartupSettings(settingsLoad: Promise<Settings | undefined>): Promise<boolean> {
+    return new Promise((resolve) => {
+      let settled = false;
+      const timeout = window.setTimeout(() => {
+        if (!settled) {
+          resolve(false);
+        }
+      }, STARTUP_SETTINGS_DEADLINE_MS);
+
+      void settingsLoad.then(
+        () => {
+          settled = true;
+          window.clearTimeout(timeout);
+          resolve(true);
+        },
+        () => {
+          settled = true;
+          window.clearTimeout(timeout);
+          resolve(true);
+        }
+      );
+    });
+  }
+
+  /** Apply settings that arrived after the non-blocking startup deadline. */
+  applyLateSettings(document: Document, lifecycleId: number): void {
+    if (lifecycleId !== this._lifecycleId || !this.config) {
+      return;
+    }
+
+    if (this.config.settings._abort) {
+      this.teardown();
+      return;
+    }
+
+    // Existing managers share the config object, so keyboard bindings and
+    // speed rules update in place. Re-apply the initial speed for media that
+    // became available while storage was delayed.
+    this.applyInitialSpeed(document);
   }
 
   getInitialTargetSpeed(): number {
