@@ -63,10 +63,14 @@ async function main() {
   } else {
     console.log('node_modules/ already exists, skipping npm ci');
   }
-  await run(`node_modules/.bin/eslint${binExt}`, ['src/**/*.js', 'tests/**/*.js']);
-  await run(process.execPath, ['scripts/build.mjs']);
+  await run(`node_modules/.bin/eslint${binExt}`, [
+    'src/**/*.{js,ts}',
+    'tests/**/*.{js,ts}',
+    'scripts/**/*.{js,ts,mts}',
+  ]);
+  await run(process.execPath, ['scripts/build.mts']);
   await run(`node_modules/.bin/vitest${binExt}`, ['run']);
-  await run(process.execPath, ['scripts/build.mjs'], {
+  await run(process.execPath, ['scripts/build.mts'], {
     env: {
       ...process.env,
       RELEASE: '1',

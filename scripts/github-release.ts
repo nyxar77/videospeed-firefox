@@ -15,18 +15,18 @@ const releaseDir = path.join(rootDir, 'release');
 const zipName = `videospeed-${version}.zip`;
 const zipPath = path.join(releaseDir, zipName);
 
-function run(cmd) {
+function run(cmd: string): string {
   return execSync(cmd, { encoding: 'utf-8', cwd: rootDir }).trim();
 }
 
-function check(label, condition, message) {
+function check(label: string, condition: boolean, message: string): void {
   if (!condition) {
     console.error(`${label}: ${message}`);
     process.exit(1);
   }
 }
 
-function getPreviousTag(currentTag) {
+function getPreviousTag(currentTag: string): string | null {
   const tags = run(`git tag --merged ${currentTag} --sort=-creatordate`)
     .split('\n')
     .filter(Boolean);

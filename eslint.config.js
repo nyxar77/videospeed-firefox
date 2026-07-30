@@ -6,7 +6,7 @@ export default [
   js.configs.recommended,
   ...tseslint.configs.recommended.map((config) => ({
     ...config,
-    files: ['**/*.{ts,tsx}'],
+    files: ['**/*.{ts,mts,tsx}'],
   })),
   {
     languageOptions: {
@@ -59,7 +59,7 @@ export default [
     },
   },
   {
-    files: ['**/*.ts'],
+    files: ['**/*.{ts,mts}'],
     rules: {
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': [
