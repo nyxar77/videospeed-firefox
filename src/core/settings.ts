@@ -3,7 +3,7 @@
  */
 
 import type { StorageChanges, Settings, StoredSettings, KeyBinding } from '../types/settings.ts';
-import { isControllerTheme } from '../ui/controller-themes.ts';
+import { normalizeControllerTheme } from '../ui/controller-themes.ts';
 
 window.VSC = window.VSC || {};
 
@@ -172,9 +172,7 @@ if (!window.VSC.VideoSpeedConfig) {
         this.settings.startHidden = Boolean(storage.startHidden);
         this.settings.controllerOpacity = Number(storage.controllerOpacity);
         this.settings.controllerButtonSize = Number(storage.controllerButtonSize);
-        this.settings.controllerTheme = isControllerTheme(storage.controllerTheme)
-          ? storage.controllerTheme
-          : window.VSC.Constants.DEFAULT_SETTINGS.controllerTheme;
+        this.settings.controllerTheme = normalizeControllerTheme(storage.controllerTheme);
         // One-time migration: drop legacy controllerCSS key, reset to new model.
         if (storage.controllerCSS !== null) {
           window.VSC.StorageManager.remove(['controllerCSS']);

@@ -18,7 +18,7 @@ function settingsFixture(): Settings {
     startHidden: false,
     controllerOpacity: 0.8,
     controllerButtonSize: 16,
-    controllerTheme: 'catppuccin-mocha',
+    controllerTheme: 'catppuccin-mocha-red',
     customCSS: 'vsc-controller { filter: none; }',
     keyBindings: [
       { action: 'faster', code: 'KeyD', key: 68, keyCode: 68, displayKey: 'd', value: 0.2 },
@@ -36,7 +36,7 @@ describe('settings transfer', () => {
 
     expect(exported.format).toBe(SETTINGS_EXPORT_FORMAT);
     expect(exported.version).toBe(SETTINGS_EXPORT_VERSION);
-    expect(exported.settings.controllerTheme).toBe('catppuccin-mocha');
+    expect(exported.settings.controllerTheme).toBe('catppuccin-mocha-red');
     expect(exported.settings.customCSS).toContain('filter');
     expect(exported.settings.siteRules).toEqual([
       { pattern: 'youtube.com', enabled: true, speed: 1.5 },
@@ -59,7 +59,7 @@ describe('settings transfer', () => {
   it('round-trips settings without private runtime fields', () => {
     const imported = parseSettingsImport(createSettingsExport(settingsFixture()));
 
-    expect(imported.controllerTheme).toBe('catppuccin-mocha');
+    expect(imported.controllerTheme).toBe('catppuccin-mocha-red');
     expect(imported.keyBindings).toEqual(settingsFixture().keyBindings);
     expect(imported.siteRules).toEqual(settingsFixture().siteRules);
     expect('_abort' in imported).toBe(false);

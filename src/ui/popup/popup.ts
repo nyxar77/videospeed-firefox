@@ -6,6 +6,7 @@ import {
   tabsSendMessage,
 } from '../../utils/extension-api.ts';
 import type { KeyBinding, StoredSettings } from '../../types/settings.ts';
+import { applyThemeToDocument } from '../controller-themes.ts';
 
 interface PopupSettings extends StoredSettings {
   enabled?: boolean;
@@ -95,6 +96,8 @@ document.addEventListener('DOMContentLoaded', (): void => {
   // Load settings and initialize UI
   function loadSettingsAndInitialize(): void {
     storageGet<PopupSettings>(null).then((storage) => {
+      applyThemeToDocument(document, storage.controllerTheme);
+
       // Find the step values from keyBindings
       let slowerStep = 0.1;
       let fasterStep = 0.1;

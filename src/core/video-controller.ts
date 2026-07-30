@@ -246,6 +246,13 @@ class VideoController {
     }
   }
 
+  /** Apply stored controller appearance settings without recreating controls. */
+  setAppearance(options: { opacity?: number; buttonSize?: number }): void {
+    if (this.div.shadowRoot) {
+      window.VSC.ShadowDOMManager.setAppearance(this.div.shadowRoot, options);
+    }
+  }
+
   /**
    * Insert controller into DOM with site-specific positioning
    * @param {Document} document - Document object

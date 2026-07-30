@@ -233,6 +233,25 @@ class ShadowDOMManager {
     style.textContent = getControllerThemeCSS(resolvedTheme);
   }
 
+  /** Update controller dimensions without replacing its DOM or event handlers. */
+  static setAppearance(
+    shadow: ShadowRoot,
+    options: { opacity?: unknown; buttonSize?: unknown }
+  ): void {
+    const controller = this.getController(shadow);
+    if (typeof options.opacity === 'number' && Number.isFinite(options.opacity)) {
+      controller.style.opacity = String(options.opacity);
+    }
+
+    if (typeof options.buttonSize === 'number' && Number.isFinite(options.buttonSize)) {
+      const size = `${options.buttonSize}px`;
+      this.getSpeedIndicator(shadow).style.fontSize = size;
+      const controls = this.getControls(shadow);
+      controls.style.fontSize = size;
+      controls.style.lineHeight = size;
+    }
+  }
+
   /**
    * Get controller element from shadow DOM
    * @param {ShadowRoot} shadow - Shadow root

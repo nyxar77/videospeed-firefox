@@ -1,6 +1,6 @@
 import type { KeyBinding, KeyModifiers, Settings } from '../types/settings.ts';
 import type { SiteRule } from './site-pattern.ts';
-import { isControllerTheme } from '../ui/controller-themes.ts';
+import { normalizeControllerTheme } from '../ui/controller-themes.ts';
 
 export const SETTINGS_EXPORT_FORMAT = 'videospeed-settings';
 export const SETTINGS_EXPORT_VERSION = 1;
@@ -184,10 +184,11 @@ function parseSettings(source: Record<string, unknown>): Partial<Settings> {
     settings.controllerButtonSize = source.controllerButtonSize;
   }
   if (source.controllerTheme !== undefined) {
-    if (!isControllerTheme(source.controllerTheme)) {
+    const controllerTheme = normalizeControllerTheme(source.controllerTheme);
+    if (controllerTheme === 'default' && source.controllerTheme !== 'default') {
       throw new Error('Invalid controllerTheme');
     }
-    settings.controllerTheme = source.controllerTheme;
+    settings.controllerTheme = controllerTheme;
   }
   if (source.customCSS !== undefined) {
     if (typeof source.customCSS !== 'string') {

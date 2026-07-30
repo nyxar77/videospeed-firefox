@@ -12,6 +12,13 @@ import '../../core/storage-manager.ts';
 import '../../core/settings.ts';
 import type { KeyBinding, KeyModifiers, Settings } from '../../types/settings.ts';
 import { createSettingsExport, parseSettingsImport } from '../../utils/settings-transfer.ts';
+import {
+  applyThemeToDocument,
+  CATPPUCCIN_ACCENTS,
+  CATPPUCCIN_FLAVORS,
+  getControllerThemeLabel,
+  type ControllerTheme,
+} from '../controller-themes.ts';
 
 // UI helpers
 import { createRow } from './row-renderer.ts';
@@ -57,6 +64,38 @@ function queryAll<T = Any>(selector: string): T[] {
 
 let keyBindings: KeyBinding[] = [];
 let validationTimeout: ReturnType<typeof setTimeout> | null = null;
+
+function populateControllerThemeOptions(): void {
+  const select = getElement<HTMLSelectElement>('controllerTheme');
+  select.replaceChildren();
+
+  const defaultOption = document.createElement('option');
+  defaultOption.value = 'default';
+  defaultOption.textContent = 'Default';
+  select.appendChild(defaultOption);
+
+  for (const flavor of CATPPUCCIN_FLAVORS) {
+    const group = document.createElement('optgroup');
+    group.label = `Catppuccin ${flavor[0].toUpperCase()}${flavor.slice(1)}`;
+    for (const accent of CATPPUCCIN_ACCENTS) {
+      const theme = `catppuccin-${flavor}-${accent}` as ControllerTheme;
+      const option = document.createElement('option');
+      option.value = theme;
+      option.textContent = getControllerThemeLabel(theme);
+      group.appendChild(option);
+    }
+    select.appendChild(group);
+  }
+
+  const customOption = document.createElement('option');
+  customOption.value = 'custom';
+  customOption.textContent = 'Custom CSS';
+  select.appendChild(customOption);
+}
+
+function updateCustomThemeVisibility(theme: unknown): void {
+  getElement<HTMLElement>('customThemeSection').hidden = theme !== 'custom';
+}
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -767,8 +806,9 @@ async function save_options(): Promise<void> {
     const siteRules = collectSiteRules();
     const customCSS = getElement('controllerCSS').value;
 
-    // Validate CSS syntax — block save on parse error
-    if (!validateControllerCSS(customCSS)) {
+    // Custom CSS is stored while hidden, but is only validated and applied in
+    // Custom mode. This lets a user switch to a palette without losing work.
+    if (controllerTheme === 'custom' && !validateControllerCSS(customCSS)) {
       status.textContent = 'Error: Controller CSS has syntax errors. Fix them before saving.';
       status.classList.add('show', 'error');
       setTimeout(() => {
@@ -780,7 +820,7 @@ async function save_options(): Promise<void> {
 
     // Byte-length guard for storage.sync per-item limits.
     const cssByteSize = new Blob([customCSS]).size;
-    if (cssByteSize > 8192) {
+    if (controllerTheme === 'custom' && cssByteSize > 8192) {
       status.textContent = `Error: Controller CSS exceeds 8KB storage limit (${Math.round(cssByteSize / 1024)}KB). Reduce CSS size.`;
       status.classList.add('show', 'error');
       setTimeout(() => {
@@ -851,6 +891,8 @@ async function restore_options(): Promise<void> {
     getElement('controllerOpacity').value = storage.controllerOpacity;
     getElement('controllerButtonSize').value = storage.controllerButtonSize;
     getElement('controllerTheme').value = storage.controllerTheme;
+    applyThemeToDocument(document, storage.controllerTheme);
+    updateCustomThemeVisibility(storage.controllerTheme);
     getElement('logLevel').value = storage.logLevel;
     getElement('controllerCSS').value = storage.customCSS ?? '';
 
@@ -1054,6 +1096,7 @@ document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
     console.warn('Storage operation failed:', error.message, data);
   });
 
+  populateControllerThemeOptions();
   await restore_options();
 
   const saveBtn = getElement('save');
@@ -1073,6 +1116,12 @@ document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
   // Catch all form changes via delegation (covers dynamic rows too)
   document.body.addEventListener('input', markDirty);
   document.body.addEventListener('change', markDirty);
+
+  getElement<HTMLSelectElement>('controllerTheme').addEventListener('change', (event) => {
+    const theme = (event.target as HTMLSelectElement).value;
+    applyThemeToDocument(document, theme);
+    updateCustomThemeVisibility(theme);
+  });
 
   saveBtn.addEventListener('click', async (e: MouseEvent) => {
     e.preventDefault();

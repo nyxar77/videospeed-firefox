@@ -45,6 +45,8 @@ interface CssStorageChangeEvent extends CustomEvent {
   detail: {
     customCSS?: { newValue?: string };
     controllerTheme?: { newValue?: string };
+    controllerOpacity?: { newValue?: number };
+    controllerButtonSize?: { newValue?: number };
   };
 }
 
@@ -489,7 +491,7 @@ class VideoSpeedExtension {
       const toAdopt = [this._controllerSheet];
 
       const customCSS = this.config.settings.customCSS || '';
-      if (customCSS) {
+      if (this.config.settings.controllerTheme === 'custom' && customCSS) {
         this._customSheet = new CSSStyleSheet();
         this._customSheet.replaceSync(customCSS);
         toAdopt.push(this._customSheet);
@@ -513,6 +515,43 @@ class VideoSpeedExtension {
     }
   }
 
+  updateControllerAppearance(options: { opacity?: unknown; buttonSize?: unknown }): void {
+    if (!window.VSC.stateManager) {
+      return;
+    }
+
+    const appearance: { opacity?: number; buttonSize?: number } = {};
+    if (typeof options.opacity === 'number' && Number.isFinite(options.opacity)) {
+      appearance.opacity = options.opacity;
+    }
+    if (typeof options.buttonSize === 'number' && Number.isFinite(options.buttonSize)) {
+      appearance.buttonSize = options.buttonSize;
+    }
+    if (Object.keys(appearance).length === 0) {
+      return;
+    }
+
+    for (const video of window.VSC.stateManager.getAllMediaElements() as HTMLMediaElement[]) {
+      video.vsc?.setAppearance(appearance);
+    }
+  }
+
+  syncCustomCSS(customCSS: string, theme: unknown): void {
+    const shouldApply = theme === 'custom' && customCSS.length > 0;
+    if (shouldApply) {
+      if (!this._customSheet) {
+        this._customSheet = new CSSStyleSheet();
+        document.adoptedStyleSheets = [...document.adoptedStyleSheets, this._customSheet];
+      }
+      this._customSheet.replaceSync(customCSS);
+    } else if (this._customSheet) {
+      document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
+        (sheet) => sheet !== this._customSheet
+      );
+      this._customSheet = null;
+    }
+  }
+
   /** Live-update the user's custom CSS when options are saved. */
   setupCSSLiveUpdates(): void {
     if (this._cssStorageChangeHandler) {
@@ -528,25 +567,22 @@ class VideoSpeedExtension {
         return;
       }
 
-      if (e.detail.customCSS?.newValue !== undefined) {
-        const customCSS = e.detail.customCSS.newValue || '';
-        if (customCSS) {
-          if (!this._customSheet) {
-            this._customSheet = new CSSStyleSheet();
-            document.adoptedStyleSheets = [...document.adoptedStyleSheets, this._customSheet];
-          }
-          this._customSheet.replaceSync(customCSS);
-        } else if (this._customSheet) {
-          document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
-            (s) => s !== this._customSheet
-          );
-          this._customSheet = null;
-        }
-      }
-
       if (e.detail.controllerTheme?.newValue !== undefined) {
         this.updateControllerTheme(e.detail.controllerTheme.newValue);
       }
+      if (
+        e.detail.customCSS?.newValue !== undefined ||
+        e.detail.controllerTheme?.newValue !== undefined
+      ) {
+        this.syncCustomCSS(
+          e.detail.customCSS?.newValue ?? this.config?.settings.customCSS ?? '',
+          e.detail.controllerTheme?.newValue ?? this.config?.settings.controllerTheme
+        );
+      }
+      this.updateControllerAppearance({
+        opacity: e.detail.controllerOpacity?.newValue,
+        buttonSize: e.detail.controllerButtonSize?.newValue,
+      });
     };
 
     document.documentElement.addEventListener('VSC_STORAGE_CHANGED', this._cssStorageChangeHandler);

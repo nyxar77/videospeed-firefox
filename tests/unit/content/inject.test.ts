@@ -354,6 +354,7 @@ describe('Inject', () => {
   it('injectControllerCSS adds both default and custom sheets when customCSS is set', () => {
     extension = window.VSC_controller;
     resetCSSState(extension);
+    extension.config.settings.controllerTheme = 'custom';
     extension.config.settings.customCSS = 'vsc-controller { top: 42px; }';
 
     extension.injectControllerCSS();
@@ -390,6 +391,7 @@ describe('Inject', () => {
   it('setupCSSLiveUpdates adds custom sheet on storage change', () => {
     extension = window.VSC_controller;
     resetCSSState(extension);
+    extension.config.settings.controllerTheme = 'custom';
     extension.config.settings.customCSS = '';
 
     extension.injectControllerCSS();
@@ -411,6 +413,7 @@ describe('Inject', () => {
   it('setupCSSLiveUpdates removes custom sheet when customCSS cleared', () => {
     extension = window.VSC_controller;
     resetCSSState(extension);
+    extension.config.settings.controllerTheme = 'custom';
     extension.config.settings.customCSS = 'vsc-controller { color: red; }';
 
     extension.injectControllerCSS();
@@ -425,6 +428,47 @@ describe('Inject', () => {
 
     expect(extension._customSheet).toBeNull();
     expect(document.adoptedStyleSheets).toContain(extension._controllerSheet);
+  });
+
+  it('setupCSSLiveUpdates applies opacity and button size without rebuilding controllers', () => {
+    extension = window.VSC_controller;
+    resetCSSState(extension);
+    extension.injectControllerCSS();
+    extension.setupCSSLiveUpdates();
+
+    const setAppearance = vi.fn();
+    const media = { vsc: { setAppearance } };
+    const getAllMediaElements = vi.spyOn(window.VSC.stateManager, 'getAllMediaElements');
+    getAllMediaElements.mockReturnValue([media]);
+
+    document.documentElement.dispatchEvent(
+      new CustomEvent('VSC_STORAGE_CHANGED', {
+        detail: {
+          controllerOpacity: { newValue: 0.85 },
+          controllerButtonSize: { newValue: 19 },
+        },
+      })
+    );
+
+    expect(setAppearance).toHaveBeenCalledWith({ opacity: 0.85, buttonSize: 19 });
+    getAllMediaElements.mockRestore();
+  });
+
+  it('setupCSSLiveUpdates disables custom CSS when switching to a palette', () => {
+    extension = window.VSC_controller;
+    resetCSSState(extension);
+    extension.config.settings.controllerTheme = 'custom';
+    extension.config.settings.customCSS = 'vsc-controller { color: red; }';
+    extension.injectControllerCSS();
+    extension.setupCSSLiveUpdates();
+
+    document.documentElement.dispatchEvent(
+      new CustomEvent('VSC_STORAGE_CHANGED', {
+        detail: { controllerTheme: { newValue: 'catppuccin-mocha-red' } },
+      })
+    );
+
+    expect(extension._customSheet).toBeNull();
   });
 
   it('teardown cancels deferred work before initialization completes', () => {

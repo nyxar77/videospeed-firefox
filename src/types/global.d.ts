@@ -22,6 +22,7 @@ declare global {
     mark: number | null;
     remove(): void;
     setTheme(theme: import('../ui/controller-themes.ts').ControllerTheme): void;
+    setAppearance(options: { opacity?: number; buttonSize?: number }): void;
     updateVisibility(): void;
   }
 

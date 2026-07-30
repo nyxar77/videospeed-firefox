@@ -74,15 +74,9 @@
         <div class="row">
           <label for="controllerTheme"
             >Controller theme<br />
-            <em>Theme the speed controller without limiting custom CSS.</em>
+            <em>Choose Default, any Catppuccin accent, or Custom CSS.</em>
           </label>
-          <select id="controllerTheme">
-            <option value="default">Default</option>
-            <option value="catppuccin-latte">Catppuccin Latte</option>
-            <option value="catppuccin-frappe">Catppuccin Frappé</option>
-            <option value="catppuccin-macchiato">Catppuccin Macchiato</option>
-            <option value="catppuccin-mocha">Catppuccin Mocha</option>
-          </select>
+          <select id="controllerTheme" aria-label="Controller theme"></select>
         </div>
         <div class="row">
           <label for="controllerOpacity"
@@ -132,30 +126,29 @@
           <button id="add-site-rule">Add Site Rule</button>
           <div id="siteRulesValidation" class="css-validation"></div>
         </div>
-        <div class="row">
-          <label for="controllerCSS"
-            >Custom CSS<br />
-            <em
-              >Additional rules injected alongside the built-in defaults. Use to override
-              positioning or add site-specific tweaks.</em
-            >
-          </label>
-          <div class="css-editor">
-            <pre id="cssHighlight" class="css-highlight" aria-hidden="true"></pre>
-            <textarea
-              id="controllerCSS"
-              rows="8"
-              spellcheck="false"
-              placeholder="/* Global override */
+        <div id="customThemeSection" hidden>
+          <div class="row">
+            <label for="controllerCSS"
+              >Custom CSS<br />
+              <em>Your custom controller theme. It is only active when Custom CSS is selected.</em>
+            </label>
+            <div class="css-editor">
+              <pre id="cssHighlight" class="css-highlight" aria-hidden="true"></pre>
+              <textarea
+                id="controllerCSS"
+                rows="8"
+                spellcheck="false"
+                placeholder="/* Global override */
 vsc-controller { top: 50px !important; }
 
 /* Domain-specific */
 :root[style*='--vsc-domain: &quot;example.com&quot;'] vsc-controller {
   display: none !important;
 }"
-            ></textarea>
+              ></textarea>
+            </div>
+            <div id="cssValidation" class="css-validation"></div>
           </div>
-          <div id="cssValidation" class="css-validation"></div>
         </div>
       </section>
     </div>
