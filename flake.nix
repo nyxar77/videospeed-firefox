@@ -11,17 +11,15 @@
   }: let
     systems = ["x86_64-linux" "aarch64-linux"];
     forAllSystems = nixpkgs.lib.genAttrs systems;
+    mkPkgs = system: import nixpkgs {inherit system;};
   in {
     devShells = forAllSystems (system: let
-      pkgs = import nixpkgs {inherit system;};
+      pkgs = mkPkgs system;
     in {
-      default = pkgs.mkShell {
+      default = pkgs.mkShellNoCC {
         packages = [
           pkgs.nodejs_22
           pkgs.web-ext
-          pkgs.git
-          pkgs.zip
-          pkgs.gh
         ];
 
         shellHook = ''
@@ -30,5 +28,7 @@
         '';
       };
     });
+
+    formatter = forAllSystems (system: (mkPkgs system).alejandra);
   };
 }
