@@ -5,15 +5,15 @@
 
 window.VSC = window.VSC || {};
 
+type DebugAny = any;
+
 class DebugHelper {
-  constructor() {
-    this.isActive = false;
-  }
+  isActive = false;
 
   /**
    * Enable debug mode with enhanced logging
    */
-  enable() {
+  enable(): void {
     this.isActive = true;
     console.log('VSC debug mode enabled');
 
@@ -30,7 +30,7 @@ class DebugHelper {
       testBridge: () => this.testPopupMessageBridge(),
       forceShow: () => this.forceShowControllers(),
       forceShowAudio: () => this.forceShowAudioControllers(),
-      getVisibility: (element) => this.getElementVisibility(element),
+      getVisibility: (element: Element) => this.getElementVisibility(element),
     };
 
     console.log(
@@ -41,16 +41,17 @@ class DebugHelper {
   /**
    * Check all media elements and their detection status
    */
-  checkMediaElements() {
+  checkMediaElements(): void {
     console.group('Media Elements Analysis');
 
     // Check basic video/audio elements
-    const videos = document.querySelectorAll('video');
-    const audios = document.querySelectorAll('audio');
+    const videos = document.querySelectorAll<HTMLMediaElement>('video');
+    const audios = document.querySelectorAll<HTMLMediaElement>('audio');
 
     console.log(`Found ${videos.length} video elements, ${audios.length} audio elements`);
 
-    [...videos, ...audios].forEach((media, index) => {
+    const mediaElements = [...videos, ...audios] as HTMLMediaElement[];
+    mediaElements.forEach((media: HTMLMediaElement, index: number) => {
       console.group(`${media.tagName} #${index + 1}`);
       console.log('Element:', media);
       console.log('Connected to DOM:', media.isConnected);
@@ -99,17 +100,17 @@ class DebugHelper {
   /**
    * Check shadow DOM for hidden media elements
    */
-  checkShadowDOMMedia() {
+  checkShadowDOMMedia(): void {
     console.group('Shadow DOM Media Check');
 
     let shadowMediaCount = 0;
-    const checkElement = (element) => {
+    const checkElement = (element: Element): void => {
       if (element.shadowRoot) {
-        const shadowMedia = element.shadowRoot.querySelectorAll('video, audio');
+        const shadowMedia = element.shadowRoot.querySelectorAll<HTMLMediaElement>('video, audio');
         if (shadowMedia.length > 0) {
           console.log(`Found ${shadowMedia.length} media elements in shadow DOM of:`, element);
           shadowMediaCount += shadowMedia.length;
-          shadowMedia.forEach((media, index) => {
+          shadowMedia.forEach((media: HTMLMediaElement, index: number) => {
             console.log(`  Shadow media #${index + 1}:`, media);
           });
         }
@@ -127,13 +128,13 @@ class DebugHelper {
   /**
    * Check all controllers and their visibility status
    */
-  checkControllers() {
+  checkControllers(): void {
     console.group('Controllers Analysis');
 
-    const controllers = document.querySelectorAll('vsc-controller');
+    const controllers = document.querySelectorAll<HTMLElement>('vsc-controller');
     console.log(`Found ${controllers.length} VSC controllers`);
 
-    controllers.forEach((controller, index) => {
+    controllers.forEach((controller: HTMLElement, index: number) => {
       console.group(`Controller #${index + 1}`);
       console.log('Element:', controller);
       console.log('Classes:', controller.className);
@@ -167,7 +168,7 @@ class DebugHelper {
 
       // Find associated video
       let associatedVideo = null;
-      document.querySelectorAll('video, audio').forEach((media) => {
+      document.querySelectorAll<HTMLMediaElement>('video, audio').forEach((media) => {
         if (media.vsc && media.vsc.div === controller) {
           associatedVideo = media;
         }
@@ -189,7 +190,7 @@ class DebugHelper {
   /**
    * Test popup communication
    */
-  testPopupCommunication() {
+  testPopupCommunication(): void {
     console.group('Popup Communication Test');
 
     // Test if message bridge is working
@@ -206,10 +207,10 @@ class DebugHelper {
     console.log('Testing direct VSC message handling...');
 
     // Check if videos would respond
-    const videos = document.querySelectorAll('video, audio');
+    const videos = document.querySelectorAll<HTMLMediaElement>('video, audio');
     console.log(`Found ${videos.length} media elements to control`);
 
-    videos.forEach((video, index) => {
+    videos.forEach((video: HTMLMediaElement, index: number) => {
       console.log(`Media #${index + 1}:`, {
         element: video,
         hasController: !!video.vsc,
@@ -226,7 +227,7 @@ class DebugHelper {
       const testSpeed = 1.5;
       console.log(`Testing speed change to ${testSpeed}x`);
 
-      videos.forEach((video, index) => {
+      videos.forEach((video: HTMLMediaElement, index: number) => {
         if (video.vsc) {
           console.log(`Applying speed ${testSpeed} to media #${index + 1} via action handler`);
           window.VSC_controller.actionHandler.adjustSpeed(video, testSpeed);
@@ -239,7 +240,7 @@ class DebugHelper {
       // Reset after 2 seconds
       setTimeout(() => {
         console.log('Resetting speed to 1.0x');
-        videos.forEach((video) => {
+        videos.forEach((video: HTMLMediaElement) => {
           if (video.vsc) {
             window.VSC_controller.actionHandler.adjustSpeed(video, 1.0);
           } else {
@@ -257,7 +258,7 @@ class DebugHelper {
   /**
    * Test the complete popup message bridge by simulating the message flow
    */
-  testPopupMessageBridge() {
+  testPopupMessageBridge(): void {
     console.group('Testing Complete Popup Message Bridge');
 
     // Test if we can simulate the exact message flow from popup → content script → page context
@@ -269,7 +270,7 @@ class DebugHelper {
 
     console.log('Testing message bridge by simulating popup messages...');
 
-    testMessages.forEach((message, index) => {
+    testMessages.forEach((message: DebugAny, index: number) => {
       setTimeout(() => {
         console.log(`Debug: Simulating popup message ${index + 1}:`, message);
 
@@ -289,11 +290,11 @@ class DebugHelper {
   /**
    * Force show all controllers for debugging
    */
-  forceShowControllers() {
+  forceShowControllers(): number {
     console.log('Force showing all controllers');
 
-    const controllers = document.querySelectorAll('vsc-controller');
-    controllers.forEach((controller, index) => {
+    const controllers = document.querySelectorAll<HTMLElement>('vsc-controller');
+    controllers.forEach((controller: HTMLElement, index: number) => {
       // Remove all hiding classes and rely on vsc-show for visibility
       controller.classList.remove('vsc-hidden', 'vsc-nosource', 'vsc-autohide');
       controller.classList.add('vsc-manual', 'vsc-show');
@@ -307,13 +308,13 @@ class DebugHelper {
   /**
    * Force show audio controllers specifically
    */
-  forceShowAudioControllers() {
+  forceShowAudioControllers(): number {
     console.log('Force showing audio controllers');
 
     const audioElements = document.querySelectorAll('audio');
     let controllersShown = 0;
 
-    audioElements.forEach((audio, index) => {
+    audioElements.forEach((audio: HTMLAudioElement, index: number) => {
       if (audio.vsc && audio.vsc.div) {
         const controller = audio.vsc.div;
 
@@ -334,7 +335,7 @@ class DebugHelper {
   /**
    * Get detailed visibility information for an element
    */
-  getElementVisibility(element) {
+  getElementVisibility(element: Element): Record<string, unknown> {
     const style = window.getComputedStyle(element);
     const rect = element.getBoundingClientRect();
 
@@ -358,16 +359,16 @@ class DebugHelper {
   /**
    * Monitor controller visibility changes
    */
-  monitorControllerChanges() {
+  monitorControllerChanges(): MutationObserver {
     console.log('Starting controller visibility monitoring');
 
-    const observer = new MutationObserver((mutations) => {
-      mutations.forEach((mutation) => {
+    const observer = new MutationObserver((mutations: MutationRecord[]) => {
+      mutations.forEach((mutation: MutationRecord) => {
         if (
           mutation.type === 'attributes' &&
           (mutation.attributeName === 'class' || mutation.attributeName === 'style')
         ) {
-          const target = mutation.target;
+          const target = mutation.target as HTMLElement;
           if (target.tagName === 'VSC-CONTROLLER') {
             console.log('Controller visibility changed:', {
               element: target,

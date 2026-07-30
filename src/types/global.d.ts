@@ -9,6 +9,8 @@ declare global {
     VSC: VSCNamespace;
     VSC_controller?: any;
     VSC_settings?: Record<string, unknown>;
+    vscDebug?: Record<string, unknown>;
+    vscDebugHelper?: unknown;
   }
 
   interface VSCControllerState {

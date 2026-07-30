@@ -7,7 +7,7 @@
 // Core utilities and constants - must load first
 import '../utils/constants.ts';
 import '../utils/logger.ts';
-import '../utils/debug-helper.js';
+import '../utils/debug-helper.ts';
 import '../utils/dom-utils.ts';
 import '../utils/event-manager.ts';
 
@@ -47,7 +47,7 @@ import '../site-handlers/dailymotion-handler.ts';
 import '../site-handlers/index.ts';
 
 // Netflix-specific script
-import '../site-handlers/scripts/netflix.js';
+import '../site-handlers/scripts/netflix.ts';
 
 // Main initialization - must be last
 import '../content/inject.ts';

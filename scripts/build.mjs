@@ -115,7 +115,7 @@ async function build() {
       ...common,
       entryPoints: {
         'content-bridge': 'src/entries/content-bridge.ts',
-        inject: 'src/entries/inject-entry.js',
+        inject: 'src/entries/inject-entry.ts',
         background: 'src/background.ts',
         'ui/popup/popup': 'src/ui/popup/popup.ts',
         'ui/options/options': 'src/ui/options/options.ts',
