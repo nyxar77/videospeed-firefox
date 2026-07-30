@@ -12,7 +12,7 @@ import '../../core/storage-manager.ts';
 import '../../core/settings.ts';
 
 // UI helpers
-import { createRow } from './row-renderer.js';
+import { createRow } from './row-renderer.ts';
 
 // Initialize global namespace for options page
 window.VSC = window.VSC || {};

@@ -37,7 +37,7 @@ function validateExtension() {
   test('dist/content-bridge.js exists', existsSync(join(extensionRoot, 'dist/content-bridge.js')));
   test('dist/inject.js exists', existsSync(join(extensionRoot, 'dist/inject.js')));
   test('dist/background.js exists', existsSync(join(extensionRoot, 'dist/background.js')));
-  test('dist/ui/popup/popup.js exists', existsSync(join(extensionRoot, 'dist/ui/popup/popup.js')));
+  test('dist/ui/popup/popup.ts exists', existsSync(join(extensionRoot, 'dist/ui/popup/popup.ts')));
   test(
     'dist/ui/options/options.js exists',
     existsSync(join(extensionRoot, 'dist/ui/options/options.js'))

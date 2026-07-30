@@ -26,7 +26,29 @@
  *   - className {string}       Additional CSS class(es) for the row
  * @returns {HTMLElement} The created row element
  */
-export function createRow(container, columns, data = {}, opts = {}) {
+interface ColumnSpec {
+  key: string;
+  type: 'text' | 'checkbox' | 'select';
+  className: string;
+  placeholder?: string;
+  inputType?: string;
+  default?: unknown;
+  options?: Array<[string, string]>;
+}
+
+interface RowOptions {
+  before?: HTMLElement;
+  removable?: boolean;
+  id?: string;
+  className?: string;
+}
+
+export function createRow(
+  container: HTMLElement,
+  columns: ColumnSpec[],
+  data: Record<string, unknown> = {},
+  opts: RowOptions = {}
+): HTMLElement {
   const row = document.createElement('div');
   row.className = `row${opts.className ? ` ${opts.className}` : ''}`;
   if (opts.id) {
@@ -34,25 +56,25 @@ export function createRow(container, columns, data = {}, opts = {}) {
   }
 
   for (const col of columns) {
-    let el;
+    let el: HTMLInputElement | HTMLSelectElement;
 
     if (col.type === 'select') {
       el = document.createElement('select');
       el.className = col.className;
-      for (const [value, label] of col.options) {
+      for (const [value, label] of col.options ?? []) {
         const opt = document.createElement('option');
         opt.value = value;
         opt.textContent = label;
         el.appendChild(opt);
       }
       if (data[col.key] !== null && data[col.key] !== undefined) {
-        el.value = data[col.key];
+        el.value = String(data[col.key]);
       }
     } else if (col.type === 'checkbox') {
       el = document.createElement('input');
       el.type = 'checkbox';
       el.className = col.className;
-      el.checked = data[col.key] ?? col.default ?? false;
+      el.checked = Boolean(data[col.key] ?? col.default ?? false);
     } else {
       // 'text' or any other input type
       el = document.createElement('input');
@@ -63,7 +85,7 @@ export function createRow(container, columns, data = {}, opts = {}) {
       }
       const val = data[col.key] ?? col.default;
       if (val !== null && val !== undefined) {
-        el.value = val;
+        el.value = String(val);
       }
     }
 

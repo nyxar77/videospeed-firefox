@@ -117,7 +117,7 @@ async function build() {
         'content-bridge': 'src/entries/content-bridge.ts',
         inject: 'src/entries/inject-entry.js',
         background: 'src/background.ts',
-        'ui/popup/popup': 'src/ui/popup/popup.js',
+        'ui/popup/popup': 'src/ui/popup/popup.ts',
         'ui/options/options': 'src/ui/options/options.js',
       },
       outdir: 'dist',
