@@ -5,7 +5,7 @@
  * and pre-loads all extension modules once for the entire test run.
  */
 
-import { beforeAll, beforeEach } from 'vitest';
+import { afterEach, beforeAll, beforeEach } from 'vitest';
 import { installChromeMock, resetMockStorage } from './chrome-mock.js';
 import { loadInjectModules } from './module-loader.js';
 
@@ -81,4 +81,10 @@ beforeAll(async () => {
 // Reset mock storage between tests for isolation
 beforeEach(() => {
   resetMockStorage();
+});
+
+// The injected entry point auto-initializes during module loading. Tear it down
+// after every test so deferred scans and page listeners cannot outlive jsdom.
+afterEach(() => {
+  globalThis.window?.VSC_controller?.teardown?.();
 });

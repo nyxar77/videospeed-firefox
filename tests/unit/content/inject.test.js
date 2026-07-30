@@ -213,6 +213,46 @@ describe('Inject', () => {
     expect(video.vsc).toBeUndefined();
   });
 
+  it('performs the initial media scan without waiting for idle time', () => {
+    extension = window.VSC_controller;
+    const scanForMediaLight = vi.fn().mockReturnValue([]);
+    const scheduleComprehensiveScan = vi
+      .spyOn(extension, 'scheduleComprehensiveScan')
+      .mockImplementation(() => {});
+    const originalMediaObserver = extension.mediaObserver;
+
+    extension.mediaObserver = { scanForMediaLight };
+    try {
+      extension.deferredMediaScan(document);
+
+      expect(scanForMediaLight).toHaveBeenCalledWith(document);
+      expect(scheduleComprehensiveScan).toHaveBeenCalledWith(document);
+    } finally {
+      extension.mediaObserver = originalMediaObserver;
+      scheduleComprehensiveScan.mockRestore();
+    }
+  });
+
+  it('uses a real timer for delayed work instead of waiting for idle time', () => {
+    extension = window.VSC_controller;
+    const callback = vi.fn();
+    const requestIdleCallback = vi.spyOn(window, 'requestIdleCallback');
+
+    vi.useFakeTimers();
+    try {
+      extension.scheduleDeferredWork(callback, 1000);
+
+      expect(requestIdleCallback).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(999);
+      expect(callback).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(1);
+      expect(callback).toHaveBeenCalledOnce();
+    } finally {
+      vi.useRealTimers();
+      requestIdleCallback.mockRestore();
+    }
+  });
+
   it('onVideoFound defers controller when video has no src (no-source placeholder)', () => {
     extension = window.VSC_controller;
     expect(extension).toBeDefined();
@@ -367,5 +407,23 @@ describe('Inject', () => {
 
     expect(extension._customSheet).toBeNull();
     expect(document.adoptedStyleSheets).toContain(extension._controllerSheet);
+  });
+
+  it('teardown cancels deferred work before initialization completes', () => {
+    extension = window.VSC_controller;
+    extension.initialized = false;
+
+    vi.useFakeTimers();
+    try {
+      const deferredWork = vi.fn();
+      extension.scheduleDeferredWork(deferredWork);
+
+      extension.teardown();
+      vi.runAllTimers();
+
+      expect(deferredWork).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

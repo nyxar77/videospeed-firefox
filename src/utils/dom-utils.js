@@ -76,30 +76,18 @@ window.VSC.DomUtils.findVideoParent = function (element) {
 };
 
 /**
- * Initialize document when ready
+ * Initialize document when DOM is ready
  * @param {Document} document - Document to initialize
  * @param {Function} callback - Callback to run when ready
  */
 window.VSC.DomUtils.initializeWhenReady = function (document, callback) {
   window.VSC.logger.debug('Begin initializeWhenReady');
 
-  const handleWindowLoad = () => {
-    callback(window.document);
-  };
-
-  window.addEventListener('load', handleWindowLoad, { once: true });
-
   if (document) {
-    if (document.readyState === 'complete') {
+    if (document.readyState !== 'loading') {
       callback(document);
     } else {
-      const handleReadyStateChange = () => {
-        if (document.readyState === 'complete') {
-          document.removeEventListener('readystatechange', handleReadyStateChange);
-          callback(document);
-        }
-      };
-      document.addEventListener('readystatechange', handleReadyStateChange);
+      document.addEventListener('DOMContentLoaded', () => callback(document), { once: true });
     }
   }
 

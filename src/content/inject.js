@@ -10,12 +10,70 @@ class VideoSpeedExtension {
     this.mutationObserver = null;
     this.mediaObserver = null;
     this.initialized = false;
+    this._lifecycleId = 0;
+    this._pendingTimeouts = new Set();
+    this._pendingIdleCallbacks = new Set();
+    this._cssStorageChangeHandler = null;
+  }
+
+  /**
+   * Run deferred work only while the current extension lifecycle is active.
+   * Page teardown can happen before an async initialization callback fires.
+   *
+   * @param {Function} callback - Deferred work to run
+   * @param {number} delay - Fallback timeout when idle callbacks are unavailable
+   */
+  scheduleDeferredWork(callback, delay = 0) {
+    const lifecycleId = this._lifecycleId;
+    // Delayed work uses a timer so the delay remains meaningful. Idle callbacks
+    // are reserved for optional work that explicitly requests a zero delay.
+    const useIdleCallback = delay === 0 && typeof window.requestIdleCallback === 'function';
+    let handleId;
+
+    const run = () => {
+      if (useIdleCallback) {
+        this._pendingIdleCallbacks.delete(handleId);
+      } else {
+        this._pendingTimeouts.delete(handleId);
+      }
+
+      if (lifecycleId !== this._lifecycleId) {
+        return;
+      }
+
+      callback();
+    };
+
+    if (useIdleCallback) {
+      handleId = window.requestIdleCallback(run);
+      this._pendingIdleCallbacks.add(handleId);
+    } else {
+      handleId = window.setTimeout(run, delay);
+      this._pendingTimeouts.add(handleId);
+    }
+  }
+
+  /** Cancel deferred work from a previous lifecycle. */
+  cancelDeferredWork() {
+    for (const timeoutId of this._pendingTimeouts) {
+      window.clearTimeout(timeoutId);
+    }
+    for (const idleId of this._pendingIdleCallbacks) {
+      if (typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(idleId);
+      }
+    }
+
+    this._pendingTimeouts.clear();
+    this._pendingIdleCallbacks.clear();
   }
 
   /**
    * Initialize the extension
    */
   async initialize() {
+    const lifecycleId = ++this._lifecycleId;
+
     try {
       // Access global modules
       this.VideoController = window.VSC.VideoController;
@@ -33,6 +91,10 @@ class VideoSpeedExtension {
       this.config = window.VSC.videoSpeedConfig;
       await this.config.load();
 
+      if (lifecycleId !== this._lifecycleId) {
+        return;
+      }
+
       if (this.config.settings._abort) {
         this.logger.debug('Extension disabled on this site — aborting init');
         return;
@@ -40,7 +102,7 @@ class VideoSpeedExtension {
 
       this.applyInitialSpeed(document);
 
-      // Defer DOM work so page frameworks finish init before we mutate.
+      // Begin DOM work as soon as the content script has the settings.
       this.deferDOMWork(document);
     } catch (error) {
       this.logger.error(`Failed to initialize Video Speed Controller: ${error.message}`);
@@ -88,8 +150,12 @@ class VideoSpeedExtension {
    * Initialize for a specific document
    * @param {Document} document - Document to initialize
    */
-  initializeDocument(document) {
+  initializeDocument(document, lifecycleId = this._lifecycleId) {
     try {
+      if (lifecycleId !== this._lifecycleId) {
+        return;
+      }
+
       if (window.VSC.initialized) {
         return;
       }
@@ -105,7 +171,8 @@ class VideoSpeedExtension {
   }
 
   /**
-   * Defer expensive operations to avoid blocking page load
+   * Start observers and the first media scan as soon as the document is ready.
+   * Only the comprehensive fallback scan is delayed.
    * @param {Document} document - Document to defer operations for
    */
   deferExpensiveOperations(document) {
@@ -117,22 +184,19 @@ class VideoSpeedExtension {
           this.logger.debug('Mutation observer started for document');
         }
 
-        // Defer media scanning to avoid blocking page load
+        // Scan immediately so existing media gets a controller before the
+        // browser's first useful interaction.
         this.deferredMediaScan(document);
       } catch (error) {
         this.logger.error(`Failed to complete deferred operations: ${error.message}`);
       }
     };
 
-    if (window.requestIdleCallback) {
-      requestIdleCallback(callback);
-    } else {
-      setTimeout(callback, 100);
-    }
+    callback();
   }
 
   /**
-   * Perform media scanning in a non-blocking way
+   * Perform the initial media scan
    * @param {Document} document - Document to scan
    */
   deferredMediaScan(document) {
@@ -159,11 +223,7 @@ class VideoSpeedExtension {
       }
     };
 
-    if (window.requestIdleCallback) {
-      requestIdleCallback(performChunkedScan);
-    } else {
-      setTimeout(performChunkedScan, 200);
-    }
+    performChunkedScan();
   }
 
   /**
@@ -172,7 +232,7 @@ class VideoSpeedExtension {
    */
   scheduleComprehensiveScan(document) {
     // Only do comprehensive scan if we didn't find any media with light scan
-    setTimeout(() => {
+    this.scheduleDeferredWork(() => {
       try {
         const comprehensiveMedia = this.mediaObserver.scanAll(document);
 
@@ -193,10 +253,12 @@ class VideoSpeedExtension {
   }
 
   /**
-   * Defer DOM work via requestIdleCallback to yield to site frameworks
-   * before injecting CSS, controllers, and observers.
+   * Set up CSS, controllers, and observers immediately. The content script is
+   * already isolated from the page's JavaScript, so waiting for idle time only
+   * delays the controller without protecting the page from our DOM changes.
    */
   deferDOMWork(document) {
+    const lifecycleId = this._lifecycleId;
     const doWork = () => {
       this.injectControllerCSS();
       this.setupCSSLiveUpdates();
@@ -209,18 +271,16 @@ class VideoSpeedExtension {
       this.setupObservers();
 
       this.initializeWhenReady(document, (doc) => {
-        this.initializeDocument(doc);
+        if (lifecycleId === this._lifecycleId) {
+          this.initializeDocument(doc, lifecycleId);
+        }
       });
 
       this.logger.info('Video Speed Controller initialized successfully');
       this.initialized = true;
     };
 
-    if (window.requestIdleCallback) {
-      requestIdleCallback(doWork);
-    } else {
-      setTimeout(doWork, 0);
-    }
+    doWork();
   }
 
   /**
@@ -274,7 +334,14 @@ class VideoSpeedExtension {
 
   /** Live-update the user's custom CSS when options are saved. */
   setupCSSLiveUpdates() {
-    document.documentElement.addEventListener('VSC_STORAGE_CHANGED', (e) => {
+    if (this._cssStorageChangeHandler) {
+      document.documentElement.removeEventListener(
+        'VSC_STORAGE_CHANGED',
+        this._cssStorageChangeHandler
+      );
+    }
+
+    this._cssStorageChangeHandler = (e) => {
       if (e.detail?.customCSS?.newValue === undefined || !this._controllerSheet) {
         return;
       }
@@ -291,7 +358,9 @@ class VideoSpeedExtension {
         );
         this._customSheet = null;
       }
-    });
+    };
+
+    document.documentElement.addEventListener('VSC_STORAGE_CHANGED', this._cssStorageChangeHandler);
   }
 
   /**
@@ -366,6 +435,9 @@ class VideoSpeedExtension {
    * Counterpart to initialize() — leaves the page as if VSC was never active.
    */
   teardown() {
+    this._lifecycleId++;
+    this.cancelDeferredWork();
+
     if (!this.initialized) {
       return;
     }
@@ -402,6 +474,13 @@ class VideoSpeedExtension {
       document.adoptedStyleSheets = document.adoptedStyleSheets.filter(
         (s) => s !== this._controllerSheet && s !== this._customSheet
       );
+    }
+    if (this._cssStorageChangeHandler) {
+      document.documentElement.removeEventListener(
+        'VSC_STORAGE_CHANGED',
+        this._cssStorageChangeHandler
+      );
+      this._cssStorageChangeHandler = null;
     }
     this._controllerSheet = null;
     this._customSheet = null;
