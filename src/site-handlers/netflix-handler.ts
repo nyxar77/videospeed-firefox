@@ -2,6 +2,8 @@
  * Netflix-specific handler
  */
 
+import type { ControllerPositioning } from '../types/site-handlers.ts';
+
 window.VSC = window.VSC || {};
 
 class NetflixHandler extends window.VSC.BaseSiteHandler {
@@ -9,7 +11,7 @@ class NetflixHandler extends window.VSC.BaseSiteHandler {
    * Check if this handler applies to Netflix
    * @returns {boolean} True if on Netflix
    */
-  static matches() {
+  static matches(): boolean {
     return location.hostname === 'www.netflix.com';
   }
 
@@ -19,12 +21,12 @@ class NetflixHandler extends window.VSC.BaseSiteHandler {
    * @param {HTMLElement} video - Video element
    * @returns {Object} Positioning information
    */
-  getControllerPosition(parent, _video) {
+  getControllerPosition(parent: HTMLElement, _video: HTMLMediaElement): ControllerPositioning {
     // Insert before parent to bypass Netflix's overlay
     return {
-      insertionPoint: parent.parentElement,
+      insertionPoint: parent.parentElement || parent,
       insertionMethod: 'beforeParent',
-      targetParent: parent.parentElement,
+      targetParent: parent.parentElement || parent,
     };
   }
 
@@ -34,7 +36,7 @@ class NetflixHandler extends window.VSC.BaseSiteHandler {
    * @param {number} seekSeconds - Seconds to seek
    * @returns {boolean} True if handled
    */
-  handleSeek(video, seekSeconds) {
+  handleSeek(video: HTMLMediaElement, seekSeconds: number): boolean {
     try {
       // Use Netflix's postMessage API for seeking
       window.postMessage(
@@ -47,8 +49,9 @@ class NetflixHandler extends window.VSC.BaseSiteHandler {
 
       window.VSC.logger.debug(`Netflix seek: ${seekSeconds} seconds`);
       return true;
-    } catch (error) {
-      window.VSC.logger.error(`Netflix seek failed: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      window.VSC.logger.error(`Netflix seek failed: ${message}`);
       // Fallback to default seeking
       video.currentTime += seekSeconds;
       return true;
@@ -59,7 +62,7 @@ class NetflixHandler extends window.VSC.BaseSiteHandler {
    * Initialize Netflix-specific functionality
    * @param {Document} document - Document object
    */
-  initialize(document) {
+  initialize(document: Document): void {
     super.initialize(document);
 
     // Netflix-specific script injection is handled by the content script because
@@ -74,11 +77,12 @@ class NetflixHandler extends window.VSC.BaseSiteHandler {
    * @param {HTMLMediaElement} video - Video element
    * @returns {boolean} True if video should be ignored
    */
-  shouldIgnoreVideo(video) {
+  shouldIgnoreVideo(video: HTMLMediaElement): boolean {
     // Ignore preview videos or thumbnails
     return (
-      video.classList.contains('preview-video') ||
-      video.parentElement?.classList.contains('billboard-row')
+      (video.classList.contains('preview-video') ||
+        video.parentElement?.classList.contains('billboard-row')) ??
+      false
     );
   }
 
@@ -86,7 +90,7 @@ class NetflixHandler extends window.VSC.BaseSiteHandler {
    * Get Netflix-specific video container selectors
    * @returns {Array<string>} CSS selectors
    */
-  getVideoContainerSelectors() {
+  getVideoContainerSelectors(): string[] {
     return ['.watch-video', '.nfp-container', '#netflix-player'];
   }
 }

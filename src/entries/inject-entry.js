@@ -23,8 +23,8 @@ import '../core/settings.ts';
 import '../core/state-manager.ts';
 
 // Observers - depends on utils and settings
-import '../observers/media-observer.js';
-import '../observers/mutation-observer.js';
+import '../observers/media-observer.ts';
+import '../observers/mutation-observer.ts';
 
 // Core functionality - depends on settings and observers
 import '../core/action-handler.ts';
@@ -37,14 +37,14 @@ import '../ui/shadow-dom.ts';
 import '../ui/vsc-controller-element.ts';
 
 // Site-specific handlers - depends on core
-import '../site-handlers/base-handler.js';
-import '../site-handlers/netflix-handler.js';
-import '../site-handlers/youtube-handler.js';
-import '../site-handlers/facebook-handler.js';
-import '../site-handlers/amazon-handler.js';
-import '../site-handlers/apple-handler.js';
-import '../site-handlers/dailymotion-handler.js';
-import '../site-handlers/index.js';
+import '../site-handlers/base-handler.ts';
+import '../site-handlers/netflix-handler.ts';
+import '../site-handlers/youtube-handler.ts';
+import '../site-handlers/facebook-handler.ts';
+import '../site-handlers/amazon-handler.ts';
+import '../site-handlers/apple-handler.ts';
+import '../site-handlers/dailymotion-handler.ts';
+import '../site-handlers/index.ts';
 
 // Netflix-specific script
 import '../site-handlers/scripts/netflix.js';

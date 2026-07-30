@@ -26,14 +26,14 @@ export async function loadCoreModules() {
   await import('../../src/core/state-manager.ts');
 
   // Site handlers
-  await import('../../src/site-handlers/base-handler.js');
-  await import('../../src/site-handlers/netflix-handler.js');
-  await import('../../src/site-handlers/youtube-handler.js');
-  await import('../../src/site-handlers/facebook-handler.js');
-  await import('../../src/site-handlers/amazon-handler.js');
-  await import('../../src/site-handlers/apple-handler.js');
-  await import('../../src/site-handlers/dailymotion-handler.js');
-  await import('../../src/site-handlers/index.js');
+  await import('../../src/site-handlers/base-handler.ts');
+  await import('../../src/site-handlers/netflix-handler.ts');
+  await import('../../src/site-handlers/youtube-handler.ts');
+  await import('../../src/site-handlers/facebook-handler.ts');
+  await import('../../src/site-handlers/amazon-handler.ts');
+  await import('../../src/site-handlers/apple-handler.ts');
+  await import('../../src/site-handlers/dailymotion-handler.ts');
+  await import('../../src/site-handlers/index.ts');
 
   // Core controllers
   await import('../../src/core/action-handler.ts');
@@ -46,8 +46,8 @@ export async function loadCoreModules() {
   await import('../../src/ui/vsc-controller-element.ts');
 
   // Observers
-  await import('../../src/observers/mutation-observer.js');
-  await import('../../src/observers/media-observer.js');
+  await import('../../src/observers/mutation-observer.ts');
+  await import('../../src/observers/media-observer.ts');
 }
 
 /**

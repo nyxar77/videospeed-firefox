@@ -2,9 +2,18 @@
  * Site handler factory and manager
  */
 
+import type {
+  ControllerPositioning,
+  SiteHandler,
+  SiteHandlerConstructor,
+} from '../types/site-handlers.ts';
+
 window.VSC = window.VSC || {};
 
 class SiteHandlerManager {
+  currentHandler: SiteHandler | null;
+  availableHandlers: SiteHandlerConstructor[];
+
   constructor() {
     this.currentHandler = null;
     this.availableHandlers = [
@@ -21,7 +30,7 @@ class SiteHandlerManager {
    * Get the appropriate handler for the current site
    * @returns {BaseSiteHandler} Site handler instance
    */
-  getCurrentHandler() {
+  getCurrentHandler(): SiteHandler {
     if (!this.currentHandler) {
       this.currentHandler = this.detectHandler();
     }
@@ -33,7 +42,7 @@ class SiteHandlerManager {
    * @returns {BaseSiteHandler} Site handler instance
    * @private
    */
-  detectHandler() {
+  detectHandler(): SiteHandler {
     for (const HandlerClass of this.availableHandlers) {
       if (HandlerClass.matches()) {
         window.VSC.logger.info(`Using ${HandlerClass.name} for ${location.hostname}`);
@@ -42,14 +51,14 @@ class SiteHandlerManager {
     }
 
     window.VSC.logger.debug(`Using BaseSiteHandler for ${location.hostname}`);
-    return new window.VSC.BaseSiteHandler();
+    return new window.VSC.BaseSiteHandler() as SiteHandler;
   }
 
   /**
    * Initialize the current site handler
    * @param {Document} document - Document object
    */
-  initialize(document) {
+  initialize(document: Document): void {
     const handler = this.getCurrentHandler();
     handler.initialize(document);
   }
@@ -60,7 +69,7 @@ class SiteHandlerManager {
    * @param {HTMLElement} video - Video element
    * @returns {Object} Positioning information
    */
-  getControllerPosition(parent, video) {
+  getControllerPosition(parent: HTMLElement, video: HTMLMediaElement): ControllerPositioning {
     const handler = this.getCurrentHandler();
     return handler.getControllerPosition(parent, video);
   }
@@ -70,7 +79,7 @@ class SiteHandlerManager {
    * @param {HTMLMediaElement} video - Video element
    * @param {number} speed - Target speed
    */
-  handleSpeedChange(video, speed) {
+  handleSpeedChange(video: HTMLMediaElement, speed: number): void {
     const handler = this.getCurrentHandler();
     handler.handleSpeedChange(video, speed);
   }
@@ -81,7 +90,7 @@ class SiteHandlerManager {
    * @param {number} seekSeconds - Seconds to seek
    * @returns {boolean} True if handled
    */
-  handleSeek(video, seekSeconds) {
+  handleSeek(video: HTMLMediaElement, seekSeconds: number): boolean {
     const handler = this.getCurrentHandler();
     return handler.handleSeek(video, seekSeconds);
   }
@@ -91,7 +100,7 @@ class SiteHandlerManager {
    * @param {HTMLMediaElement} video - Video element
    * @returns {boolean} True if video should be ignored
    */
-  shouldIgnoreVideo(video) {
+  shouldIgnoreVideo(video: HTMLMediaElement): boolean {
     const handler = this.getCurrentHandler();
     if (handler.shouldIgnoreVideo(video)) {
       return true;
@@ -113,7 +122,7 @@ class SiteHandlerManager {
    * Get video container selectors for current site
    * @returns {Array<string>} CSS selectors
    */
-  getVideoContainerSelectors() {
+  getVideoContainerSelectors(): string[] {
     const handler = this.getCurrentHandler();
     return handler.getVideoContainerSelectors();
   }
@@ -123,7 +132,7 @@ class SiteHandlerManager {
    * @param {Document} document - Document object
    * @returns {Array<HTMLMediaElement>} Additional videos found
    */
-  detectSpecialVideos(document) {
+  detectSpecialVideos(document: Document): HTMLMediaElement[] {
     const handler = this.getCurrentHandler();
     return handler.detectSpecialVideos(document);
   }
@@ -131,7 +140,7 @@ class SiteHandlerManager {
   /**
    * Cleanup current handler
    */
-  cleanup() {
+  cleanup(): void {
     if (this.currentHandler) {
       this.currentHandler.cleanup();
       this.currentHandler = null;
@@ -141,7 +150,7 @@ class SiteHandlerManager {
   /**
    * Force refresh of current handler (useful for SPA navigation)
    */
-  refresh() {
+  refresh(): void {
     this.cleanup();
     this.currentHandler = null;
   }

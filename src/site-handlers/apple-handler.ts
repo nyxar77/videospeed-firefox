@@ -2,6 +2,8 @@
  * Apple TV+ handler
  */
 
+import type { ControllerPositioning } from '../types/site-handlers.ts';
+
 window.VSC = window.VSC || {};
 
 class AppleHandler extends window.VSC.BaseSiteHandler {
@@ -9,7 +11,7 @@ class AppleHandler extends window.VSC.BaseSiteHandler {
    * Check if this handler applies to Apple TV+
    * @returns {boolean} True if on Apple TV+
    */
-  static matches() {
+  static matches(): boolean {
     return location.hostname === 'tv.apple.com';
   }
 
@@ -19,12 +21,12 @@ class AppleHandler extends window.VSC.BaseSiteHandler {
    * @param {HTMLElement} video - Video element
    * @returns {Object} Positioning information
    */
-  getControllerPosition(parent, _video) {
+  getControllerPosition(parent: HTMLElement, _video: HTMLMediaElement): ControllerPositioning {
     // Insert before parent to bypass overlay
     return {
-      insertionPoint: parent.parentNode,
+      insertionPoint: parent.parentElement || parent,
       insertionMethod: 'firstChild',
-      targetParent: parent.parentNode,
+      targetParent: parent.parentElement || parent,
     };
   }
 
@@ -32,7 +34,7 @@ class AppleHandler extends window.VSC.BaseSiteHandler {
    * Get Apple TV+-specific video container selectors
    * @returns {Array<string>} CSS selectors
    */
-  getVideoContainerSelectors() {
+  getVideoContainerSelectors(): string[] {
     return ['apple-tv-plus-player', '[data-testid="player"]', '.video-container'];
   }
 
@@ -41,7 +43,7 @@ class AppleHandler extends window.VSC.BaseSiteHandler {
    * @param {Document} document - Document object
    * @returns {Array<HTMLMediaElement>} Additional videos found
    */
-  detectSpecialVideos(document) {
+  detectSpecialVideos(document: Document): HTMLMediaElement[] {
     // Apple TV+ uses custom elements that may contain videos
     const applePlayer = document.querySelector('apple-tv-plus-player');
     if (applePlayer && applePlayer.shadowRoot) {

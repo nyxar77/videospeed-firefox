@@ -2,9 +2,13 @@
  * Base class for site-specific handlers
  */
 
+import type { ControllerPositioning } from '../types/site-handlers.ts';
+
 window.VSC = window.VSC || {};
 
 class BaseSiteHandler {
+  hostname: string;
+
   constructor() {
     this.hostname = location.hostname;
   }
@@ -23,7 +27,7 @@ class BaseSiteHandler {
    * @param {HTMLElement} video - Video element
    * @returns {Object} Positioning information
    */
-  getControllerPosition(parent, _video) {
+  getControllerPosition(parent: HTMLElement, _video: HTMLMediaElement): ControllerPositioning {
     return {
       insertionPoint: parent,
       insertionMethod: 'firstChild', // 'firstChild', 'beforeParent', 'afterParent'
@@ -38,7 +42,7 @@ class BaseSiteHandler {
    * @param {HTMLMediaElement} video - Video element
    * @param {number} speed - Target speed
    */
-  handleSpeedChange(video, speed) {
+  handleSpeedChange(video: HTMLMediaElement, speed: number): void {
     video.playbackRate = speed;
   }
 
@@ -48,7 +52,7 @@ class BaseSiteHandler {
    * @param {number} seekSeconds - Seconds to seek
    * @returns {boolean} True if handled, false for default behavior
    */
-  handleSeek(video, seekSeconds) {
+  handleSeek(video: HTMLMediaElement, seekSeconds: number): boolean {
     // Default implementation - use standard seeking with bounds checking (original logic)
     if (video.currentTime !== undefined && video.duration) {
       const newTime = Math.max(0, Math.min(video.duration, video.currentTime + seekSeconds));
@@ -64,14 +68,14 @@ class BaseSiteHandler {
    * Handle site-specific initialization
    * @param {Document} document - Document object
    */
-  initialize(_document) {
+  initialize(_document: Document): void {
     window.VSC.logger.debug(`Initializing ${this.constructor.name} for ${this.hostname}`);
   }
 
   /**
    * Handle site-specific cleanup
    */
-  cleanup() {
+  cleanup(): void {
     window.VSC.logger.debug(`Cleaning up ${this.constructor.name}`);
   }
 
@@ -80,7 +84,7 @@ class BaseSiteHandler {
    * @param {HTMLMediaElement} video - Video element
    * @returns {boolean} True if video should be ignored
    */
-  shouldIgnoreVideo(_video) {
+  shouldIgnoreVideo(_video: HTMLMediaElement): boolean {
     return false;
   }
 
@@ -88,7 +92,7 @@ class BaseSiteHandler {
    * Get site-specific CSS selectors for video containers
    * @returns {Array<string>} CSS selectors
    */
-  getVideoContainerSelectors() {
+  getVideoContainerSelectors(): string[] {
     return [];
   }
 
@@ -97,7 +101,7 @@ class BaseSiteHandler {
    * @param {Document} document - Document object
    * @returns {Array<HTMLMediaElement>} Additional videos found
    */
-  detectSpecialVideos(_document) {
+  detectSpecialVideos(_document: Document): HTMLMediaElement[] {
     return [];
   }
 }

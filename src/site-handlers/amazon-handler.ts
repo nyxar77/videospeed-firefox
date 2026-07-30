@@ -2,6 +2,8 @@
  * Amazon Prime Video handler
  */
 
+import type { ControllerPositioning } from '../types/site-handlers.ts';
+
 window.VSC = window.VSC || {};
 
 class AmazonHandler extends window.VSC.BaseSiteHandler {
@@ -9,7 +11,7 @@ class AmazonHandler extends window.VSC.BaseSiteHandler {
    * Check if this handler applies to Amazon
    * @returns {boolean} True if on Amazon
    */
-  static matches() {
+  static matches(): boolean {
     return (
       location.hostname === 'www.amazon.com' ||
       location.hostname === 'www.primevideo.com' ||
@@ -24,14 +26,14 @@ class AmazonHandler extends window.VSC.BaseSiteHandler {
    * @param {HTMLElement} video - Video element
    * @returns {Object} Positioning information
    */
-  getControllerPosition(parent, video) {
+  getControllerPosition(parent: HTMLElement, video: HTMLMediaElement): ControllerPositioning {
     // Only special-case Prime Video, not product-page videos (which use "vjs-tech")
     // Otherwise the overlay disappears in fullscreen mode
     if (!video.classList.contains('vjs-tech')) {
       return {
-        insertionPoint: parent.parentElement,
+        insertionPoint: parent.parentElement || parent,
         insertionMethod: 'beforeParent',
-        targetParent: parent.parentElement,
+        targetParent: parent.parentElement || parent,
       };
     }
 
@@ -44,7 +46,7 @@ class AmazonHandler extends window.VSC.BaseSiteHandler {
    * @param {HTMLMediaElement} video - Video element
    * @returns {boolean} True if video should be ignored
    */
-  shouldIgnoreVideo(video) {
+  shouldIgnoreVideo(video: HTMLMediaElement): boolean {
     // Don't reject videos that are still loading
     if (video.readyState < 2) {
       return false;
@@ -59,7 +61,7 @@ class AmazonHandler extends window.VSC.BaseSiteHandler {
    * Get Amazon-specific video container selectors
    * @returns {Array<string>} CSS selectors
    */
-  getVideoContainerSelectors() {
+  getVideoContainerSelectors(): string[] {
     return ['.dv-player-container', '.webPlayerContainer', '[data-testid="video-player"]'];
   }
 }

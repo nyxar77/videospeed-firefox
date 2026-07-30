@@ -2,6 +2,8 @@
  * YouTube-specific handler
  */
 
+import type { ControllerPositioning } from '../types/site-handlers.ts';
+
 window.VSC = window.VSC || {};
 
 class YouTubeHandler extends window.VSC.BaseSiteHandler {
@@ -9,7 +11,7 @@ class YouTubeHandler extends window.VSC.BaseSiteHandler {
    * Check if this handler applies to YouTube
    * @returns {boolean} True if on YouTube
    */
-  static matches() {
+  static matches(): boolean {
     return location.hostname === 'www.youtube.com';
   }
 
@@ -19,10 +21,10 @@ class YouTubeHandler extends window.VSC.BaseSiteHandler {
    * @param {HTMLElement} video - Video element
    * @returns {Object} Positioning information
    */
-  getControllerPosition(parent, _video) {
+  getControllerPosition(parent: HTMLElement, _video: HTMLMediaElement): ControllerPositioning {
     // YouTube requires special positioning to ensure controller is on top.
     // Default: insert into the .html5-video-player (one level up from video container).
-    let targetParent = parent.parentElement;
+    let targetParent = parent.parentElement || parent;
 
     // Embedded YouTube has a #player-controls overlay that sits as a sibling of
     // .html5-video-player and creates a separate stacking context, intercepting
@@ -37,7 +39,7 @@ class YouTubeHandler extends window.VSC.BaseSiteHandler {
       targetParent.parentElement &&
       targetParent.parentElement.querySelector('#player-controls')
     ) {
-      targetParent = targetParent.parentElement;
+      targetParent = targetParent.parentElement || targetParent;
     }
 
     return {
@@ -57,11 +59,12 @@ class YouTubeHandler extends window.VSC.BaseSiteHandler {
    * @param {HTMLMediaElement} video - Video element
    * @returns {boolean} True if video should be ignored
    */
-  shouldIgnoreVideo(video) {
+  shouldIgnoreVideo(video: HTMLMediaElement): boolean {
     // Ignore thumbnail videos and ads
     return (
-      video.classList.contains('video-thumbnail') ||
-      video.parentElement?.classList.contains('ytp-ad-player-overlay')
+      (video.classList.contains('video-thumbnail') ||
+        video.parentElement?.classList.contains('ytp-ad-player-overlay')) ??
+      false
     );
   }
 
@@ -69,7 +72,7 @@ class YouTubeHandler extends window.VSC.BaseSiteHandler {
    * Get YouTube-specific video container selectors
    * @returns {Array<string>} CSS selectors
    */
-  getVideoContainerSelectors() {
+  getVideoContainerSelectors(): string[] {
     return ['.html5-video-player', '#movie_player', '.ytp-player-content'];
   }
 
@@ -78,25 +81,26 @@ class YouTubeHandler extends window.VSC.BaseSiteHandler {
    * @param {Document} document - Document object
    * @returns {Array<HTMLMediaElement>} Additional videos found
    */
-  detectSpecialVideos(document) {
-    const videos = [];
+  detectSpecialVideos(document: Document): HTMLMediaElement[] {
+    const videos: HTMLMediaElement[] = [];
 
     // Look for videos in iframes (embedded players)
     try {
-      const iframes = document.querySelectorAll('iframe[src*="youtube.com"]');
+      const iframes = document.querySelectorAll<HTMLIFrameElement>('iframe[src*="youtube.com"]');
       iframes.forEach((iframe) => {
         try {
           const iframeDoc = iframe.contentDocument;
           if (iframeDoc) {
-            const iframeVideos = iframeDoc.querySelectorAll('video');
+            const iframeVideos = iframeDoc.querySelectorAll<HTMLVideoElement>('video');
             videos.push(...Array.from(iframeVideos));
           }
         } catch {
           // Cross-origin iframe, ignore
         }
       });
-    } catch (e) {
-      window.VSC.logger.debug(`Could not access YouTube iframe videos: ${e.message}`);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      window.VSC.logger.debug(`Could not access YouTube iframe videos: ${message}`);
     }
 
     return videos;

@@ -2,14 +2,17 @@
  * Facebook-specific handler
  */
 
+import type { ControllerPositioning } from '../types/site-handlers.ts';
+
 window.VSC = window.VSC || {};
 
 class FacebookHandler extends window.VSC.BaseSiteHandler {
+  facebookObserver: MutationObserver | null = null;
   /**
    * Check if this handler applies to Facebook
    * @returns {boolean} True if on Facebook
    */
-  static matches() {
+  static matches(): boolean {
     return location.hostname === 'www.facebook.com';
   }
 
@@ -19,18 +22,18 @@ class FacebookHandler extends window.VSC.BaseSiteHandler {
    * @param {HTMLElement} video - Video element
    * @returns {Object} Positioning information
    */
-  getControllerPosition(parent, _video) {
+  getControllerPosition(parent: HTMLElement, _video: HTMLMediaElement): ControllerPositioning {
     // Facebook requires deep DOM traversal due to complex nesting
     // This is a monstrosity but new FB design does not have semantic handles
-    let targetParent;
+    let targetParent!: HTMLElement;
 
     try {
       targetParent =
-        parent.parentElement.parentElement.parentElement.parentElement.parentElement.parentElement
-          .parentElement;
+        parent.parentElement?.parentElement?.parentElement?.parentElement?.parentElement
+          ?.parentElement?.parentElement || parent;
     } catch {
       window.VSC.logger.warn('Facebook DOM structure changed, using fallback positioning');
-      targetParent = parent.parentElement;
+      targetParent = parent.parentElement || parent;
     }
 
     return {
@@ -44,7 +47,7 @@ class FacebookHandler extends window.VSC.BaseSiteHandler {
    * Initialize Facebook-specific functionality
    * @param {Document} document - Document object
    */
-  initialize(document) {
+  initialize(document: Document): void {
     super.initialize(document);
 
     // Facebook's dynamic content requires special handling
@@ -56,18 +59,19 @@ class FacebookHandler extends window.VSC.BaseSiteHandler {
    * @param {Document} document - Document object
    * @private
    */
-  setupFacebookObserver(document) {
+  setupFacebookObserver(document: Document): void {
     // Facebook loads content dynamically, so we need to watch for new videos
-    const observer = new MutationObserver((mutations) => {
+    const observer = new MutationObserver((mutations: MutationRecord[]) => {
       mutations.forEach((mutation) => {
         if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-          mutation.addedNodes.forEach((node) => {
+          mutation.addedNodes.forEach((node: Node) => {
             if (node.nodeType === Node.ELEMENT_NODE) {
-              const videos = node.querySelectorAll && node.querySelectorAll('video');
+              const element = node as Element;
+              const videos = element.querySelectorAll('video');
               if (videos && videos.length > 0) {
                 window.VSC.logger.debug(`Facebook: Found ${videos.length} new videos`);
                 // Signal that new videos were found
-                this.onNewVideosDetected(Array.from(videos));
+                this.onNewVideosDetected(Array.from(videos) as HTMLMediaElement[]);
               }
             }
           });
@@ -89,7 +93,7 @@ class FacebookHandler extends window.VSC.BaseSiteHandler {
    * @param {Array<HTMLMediaElement>} videos - New video elements
    * @private
    */
-  onNewVideosDetected(videos) {
+  onNewVideosDetected(videos: HTMLMediaElement[]): void {
     // This could be used to automatically attach controllers to new videos
     // For now, just log the detection
     window.VSC.logger.debug(`Facebook: ${videos.length} new videos detected`);
@@ -100,7 +104,7 @@ class FacebookHandler extends window.VSC.BaseSiteHandler {
    * @param {HTMLMediaElement} video - Video element
    * @returns {boolean} True if video should be ignored
    */
-  shouldIgnoreVideo(video) {
+  shouldIgnoreVideo(video: HTMLMediaElement): boolean {
     // Ignore story videos and other non-main content
     return (
       video.closest('[data-story-id]') !== null ||
@@ -113,14 +117,14 @@ class FacebookHandler extends window.VSC.BaseSiteHandler {
    * Get Facebook-specific video container selectors
    * @returns {Array<string>} CSS selectors
    */
-  getVideoContainerSelectors() {
+  getVideoContainerSelectors(): string[] {
     return ['[data-video-id]', '.video-container', '.fbStoryVideoContainer', '[role="main"] video'];
   }
 
   /**
    * Cleanup Facebook-specific resources
    */
-  cleanup() {
+  cleanup(): void {
     super.cleanup();
 
     if (this.facebookObserver) {

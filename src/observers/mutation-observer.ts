@@ -2,10 +2,33 @@
  * DOM mutation observer for detecting video elements
  */
 
+interface MutationObserverConfig {
+  settings: { audioBoolean: boolean };
+}
+
+interface MediaObserverLike {
+  isValidMediaElement(video: HTMLMediaElement): boolean;
+}
+
+type VideoFoundCallback = (video: HTMLMediaElement, parent: Node | null) => void;
+type VideoRemovedCallback = (video: HTMLMediaElement) => void;
+
 window.VSC = window.VSC || {};
 
 class VideoMutationObserver {
-  constructor(config, onVideoFound, onVideoRemoved, mediaObserver) {
+  config: MutationObserverConfig;
+  onVideoFound: VideoFoundCallback;
+  onVideoRemoved: VideoRemovedCallback;
+  mediaObserver: MediaObserverLike;
+  observer: MutationObserver | null;
+  shadowObservers: Set<ShadowRoot>;
+
+  constructor(
+    config: MutationObserverConfig,
+    onVideoFound: VideoFoundCallback,
+    onVideoRemoved: VideoRemovedCallback,
+    mediaObserver: MediaObserverLike
+  ) {
     this.config = config;
     this.onVideoFound = onVideoFound;
     this.onVideoRemoved = onVideoRemoved;
@@ -18,8 +41,8 @@ class VideoMutationObserver {
    * Start observing DOM mutations
    * @param {Document} document - Document to observe
    */
-  start(document) {
-    this.observer = new MutationObserver((mutations) => {
+  start(document: Document): void {
+    this.observer = new MutationObserver((mutations: MutationRecord[]) => {
       // Process mutations when the browser is genuinely idle — no forced timeout.
       // Sites do async post-load init that's sensitive to DOM insertions; a
       // forced timeout can fire during that window.
@@ -43,8 +66,8 @@ class VideoMutationObserver {
    * @param {Array<MutationRecord>} mutations - Mutation records
    * @private
    */
-  processMutations(mutations) {
-    mutations.forEach((mutation) => {
+  processMutations(mutations: MutationRecord[]): void {
+    mutations.forEach((mutation: MutationRecord) => {
       switch (mutation.type) {
         case 'childList':
           this.processChildListMutation(mutation);
@@ -61,7 +84,7 @@ class VideoMutationObserver {
    * @param {MutationRecord} mutation - Mutation record
    * @private
    */
-  processChildListMutation(mutation) {
+  processChildListMutation(mutation: MutationRecord): void {
     // Handle added nodes
     mutation.addedNodes.forEach((node) => {
       // Only process element nodes (nodeType 1)
@@ -94,32 +117,33 @@ class VideoMutationObserver {
    * @param {MutationRecord} mutation - Mutation record
    * @private
    */
-  processAttributeMutation(mutation) {
+  processAttributeMutation(mutation: MutationRecord): void {
+    const target = mutation.target as Element;
     // Handle style and class changes that might affect video visibility
     if (mutation.attributeName === 'style' || mutation.attributeName === 'class') {
-      this.handleVisibilityChanges(mutation.target);
+      this.handleVisibilityChanges(target);
     }
 
     // Handle special cases like Apple TV+ player
     if (
-      (mutation.target.attributes['aria-hidden'] &&
-        mutation.target.attributes['aria-hidden'].value === 'false') ||
-      mutation.target.nodeName === 'APPLE-TV-PLUS-PLAYER'
+      target.getAttribute('aria-hidden') === 'false' ||
+      target.nodeName === 'APPLE-TV-PLUS-PLAYER'
     ) {
-      const flattenedNodes = window.VSC.DomUtils.getShadow(document.body);
-      const videoNodes = flattenedNodes.filter((x) => x.tagName === 'VIDEO');
+      const flattenedNodes = window.VSC.DomUtils.getShadow(document.body) as Element[];
+      const videoNodes = flattenedNodes.filter((x: Element) => x.tagName === 'VIDEO');
 
       for (const node of videoNodes) {
+        const media = node as HTMLMediaElement;
         // Only add vsc the first time for the apple-tv case
-        if (node.vsc && mutation.target.nodeName === 'APPLE-TV-PLUS-PLAYER') {
+        if (media.vsc && target.nodeName === 'APPLE-TV-PLUS-PLAYER') {
           continue;
         }
 
-        if (node.vsc) {
-          node.vsc.remove();
+        if (media.vsc) {
+          media.vsc.remove();
         }
 
-        this.checkForVideoAndShadowRoot(node, node.parentNode || mutation.target, true);
+        this.checkForVideoAndShadowRoot(media, media.parentNode || target, true);
       }
     }
   }
@@ -129,13 +153,13 @@ class VideoMutationObserver {
    * @param {Element} element - Element that had style/class changes
    * @private
    */
-  handleVisibilityChanges(element) {
+  handleVisibilityChanges(element: Element): void {
     // If the element itself is a video
     if (
       element.tagName === 'VIDEO' ||
       (element.tagName === 'AUDIO' && this.config.settings.audioBoolean)
     ) {
-      this.recheckVideoElement(element);
+      this.recheckVideoElement(element as HTMLMediaElement);
       return;
     }
 
@@ -144,8 +168,8 @@ class VideoMutationObserver {
     const mediaTagSelector = audioEnabled ? 'video,audio' : 'video';
     const videos = element.querySelectorAll ? element.querySelectorAll(mediaTagSelector) : [];
 
-    videos.forEach((video) => {
-      this.recheckVideoElement(video);
+    videos.forEach((video: Element) => {
+      this.recheckVideoElement(video as HTMLMediaElement);
     });
   }
 
@@ -154,7 +178,7 @@ class VideoMutationObserver {
    * @param {HTMLMediaElement} video - Video element to recheck
    * @private
    */
-  recheckVideoElement(video) {
+  recheckVideoElement(video: HTMLMediaElement): void {
     if (!this.mediaObserver) {
       return;
     }
@@ -164,7 +188,7 @@ class VideoMutationObserver {
       if (!this.mediaObserver.isValidMediaElement(video)) {
         window.VSC.logger.debug('Video became invalid, removing controller');
         video.vsc.remove();
-        video.vsc = null;
+        delete video.vsc;
       } else {
         // Video is still valid, update visibility based on current state
         video.vsc.updateVisibility();
@@ -185,7 +209,7 @@ class VideoMutationObserver {
    * @param {boolean} added - True if node was added, false if removed
    * @private
    */
-  checkForVideoAndShadowRoot(node, parent, added) {
+  checkForVideoAndShadowRoot(node: Node, parent: Node | null, added: boolean): void {
     // Only proceed with removal if node is missing from DOM
     if (!added && document.body?.contains(node)) {
       return;
@@ -196,10 +220,10 @@ class VideoMutationObserver {
       (node.nodeName === 'AUDIO' && this.config.settings.audioBoolean)
     ) {
       if (added) {
-        this.onVideoFound(node, parent);
+        this.onVideoFound(node as HTMLMediaElement, parent);
       } else {
-        if (node.vsc) {
-          this.onVideoRemoved(node);
+        if ((node as HTMLMediaElement).vsc) {
+          this.onVideoRemoved(node as HTMLMediaElement);
         }
       }
     } else {
@@ -214,18 +238,19 @@ class VideoMutationObserver {
    * @param {boolean} added - True if node was added
    * @private
    */
-  processNodeChildren(node, parent, added) {
-    let children = [];
+  processNodeChildren(node: Node, parent: Node | null, added: boolean): void {
+    let children: Element[] = [];
 
     // Handle shadow DOM
-    if (node.shadowRoot) {
-      this.observeShadowRoot(node.shadowRoot);
-      children = Array.from(node.shadowRoot.children);
+    const element = node as Element;
+    if (element.shadowRoot) {
+      this.observeShadowRoot(element.shadowRoot);
+      children = Array.from(element.shadowRoot.children);
     }
 
     // Handle regular children
-    if (node.children) {
-      children = [...children, ...Array.from(node.children)];
+    if (element.children) {
+      children = [...children, ...Array.from(element.children)];
     }
 
     // Process all children
@@ -239,12 +264,12 @@ class VideoMutationObserver {
    * @param {ShadowRoot} shadowRoot - Shadow root to observe
    * @private
    */
-  observeShadowRoot(shadowRoot) {
+  observeShadowRoot(shadowRoot: ShadowRoot): void {
     if (this.shadowObservers.has(shadowRoot)) {
       return; // Already observing
     }
 
-    const shadowObserver = new MutationObserver((mutations) => {
+    const shadowObserver = new MutationObserver((mutations: MutationRecord[]) => {
       requestIdleCallback(
         () => {
           this.processMutations(mutations);
@@ -269,7 +294,7 @@ class VideoMutationObserver {
    * Handle document replacement
    * @private
    */
-  onDocumentReplaced() {
+  onDocumentReplaced(): void {
     // This callback should trigger reinitialization
     window.VSC.logger.warn('Document replacement detected - full reinitialization needed');
   }
@@ -277,7 +302,7 @@ class VideoMutationObserver {
   /**
    * Stop observing and clean up
    */
-  stop() {
+  stop(): void {
     if (this.observer) {
       this.observer.disconnect();
       this.observer = null;

@@ -18,6 +18,8 @@ declare global {
     speedBeforeReset: number | null;
     positionBeforeJump: number | null;
     mark: number | null;
+    remove(): void;
+    updateVisibility(): void;
   }
 
   interface HTMLMediaElement {

@@ -2,10 +2,19 @@
  * Media element observer for finding and tracking video/audio elements
  */
 
+import type { SiteHandler } from '../types/site-handlers.ts';
+
+interface MediaObserverConfig {
+  settings: { audioBoolean: boolean };
+}
+
 window.VSC = window.VSC || {};
 
 class MediaElementObserver {
-  constructor(config, siteHandler) {
+  config: MediaObserverConfig;
+  siteHandler: SiteHandler;
+
+  constructor(config: MediaObserverConfig, siteHandler: SiteHandler) {
     this.config = config;
     this.siteHandler = siteHandler;
   }
@@ -15,22 +24,24 @@ class MediaElementObserver {
    * @param {Document} document - Document to scan
    * @returns {Array<HTMLMediaElement>} Found media elements
    */
-  scanForMedia(document) {
-    const mediaElements = [];
+  scanForMedia(document: Document): HTMLMediaElement[] {
+    const mediaElements: HTMLMediaElement[] = [];
     const audioEnabled = this.config.settings.audioBoolean;
     const mediaTagSelector = audioEnabled ? 'video,audio' : 'video';
 
     // Find regular media elements
-    const regularMedia = Array.from(document.querySelectorAll(mediaTagSelector));
+    const regularMedia = Array.from(
+      document.querySelectorAll(mediaTagSelector)
+    ) as HTMLMediaElement[];
     mediaElements.push(...regularMedia);
 
     // Find media elements in shadow DOMs recursively
-    function findShadowMedia(root, selector) {
-      const results = [];
+    function findShadowMedia(root: Document | ShadowRoot, selector: string): HTMLMediaElement[] {
+      const results: HTMLMediaElement[] = [];
       // Add any matching elements in current shadow root
-      results.push(...root.querySelectorAll(selector));
+      results.push(...(Array.from(root.querySelectorAll(selector)) as HTMLMediaElement[]));
       // Recursively check all elements with shadow roots
-      root.querySelectorAll('*').forEach((element) => {
+      root.querySelectorAll('*').forEach((element: Element) => {
         if (element.shadowRoot) {
           results.push(...findShadowMedia(element.shadowRoot, selector));
         }
@@ -46,7 +57,7 @@ class MediaElementObserver {
     mediaElements.push(...siteSpecificMedia);
 
     // Filter out ignored videos
-    const filteredMedia = mediaElements.filter((media) => {
+    const filteredMedia = mediaElements.filter((media: HTMLMediaElement) => {
       return !this.siteHandler.shouldIgnoreVideo(media);
     });
 
@@ -62,14 +73,16 @@ class MediaElementObserver {
    * @param {Document} document - Document to scan
    * @returns {Array<HTMLMediaElement>} Found media elements
    */
-  scanForMediaLight(document) {
-    const mediaElements = [];
+  scanForMediaLight(document: Document): HTMLMediaElement[] {
+    const mediaElements: HTMLMediaElement[] = [];
     const audioEnabled = this.config.settings.audioBoolean;
     const mediaTagSelector = audioEnabled ? 'video,audio' : 'video';
 
     try {
       // Only do basic DOM query, no shadow DOM traversal
-      const regularMedia = Array.from(document.querySelectorAll(mediaTagSelector));
+      const regularMedia = Array.from(
+        document.querySelectorAll(mediaTagSelector)
+      ) as HTMLMediaElement[];
       mediaElements.push(...regularMedia);
 
       // Find site-specific media elements (usually lightweight)
@@ -77,7 +90,7 @@ class MediaElementObserver {
       mediaElements.push(...siteSpecificMedia);
 
       // Filter out ignored videos
-      const filteredMedia = mediaElements.filter((media) => {
+      const filteredMedia = mediaElements.filter((media: HTMLMediaElement) => {
         return !this.siteHandler.shouldIgnoreVideo(media);
       });
 
@@ -85,8 +98,9 @@ class MediaElementObserver {
         `Light scan found ${filteredMedia.length} media elements (${mediaElements.length} total, ${mediaElements.length - filteredMedia.length} filtered out)`
       );
       return filteredMedia;
-    } catch (error) {
-      window.VSC.logger.error(`Light media scan failed: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      window.VSC.logger.error(`Light media scan failed: ${message}`);
       return [];
     }
   }
@@ -96,11 +110,11 @@ class MediaElementObserver {
    * @param {Document} document - Document to scan
    * @returns {Array<HTMLMediaElement>} Found media elements in iframes
    */
-  scanIframes(document) {
-    const mediaElements = [];
+  scanIframes(document: Document): HTMLMediaElement[] {
+    const mediaElements: HTMLMediaElement[] = [];
     const frameTags = document.getElementsByTagName('iframe');
 
-    Array.prototype.forEach.call(frameTags, (frame) => {
+    Array.prototype.forEach.call(frameTags, (frame: HTMLIFrameElement) => {
       // Ignore frames we don't have permission to access (different origin)
       try {
         const childDocument = frame.contentDocument;
@@ -109,8 +123,9 @@ class MediaElementObserver {
           mediaElements.push(...iframeMedia);
           window.VSC.logger.debug(`Found ${iframeMedia.length} media elements in iframe`);
         }
-      } catch (e) {
-        window.VSC.logger.debug(`Cannot access iframe content (cross-origin): ${e.message}`);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        window.VSC.logger.debug(`Cannot access iframe content (cross-origin): ${message}`);
       }
     });
 
@@ -122,20 +137,21 @@ class MediaElementObserver {
    * @param {Document} document - Document to scan
    * @returns {Array<HTMLMediaElement>} Found media elements
    */
-  scanSiteSpecificContainers(document) {
-    const mediaElements = [];
+  scanSiteSpecificContainers(document: Document): HTMLMediaElement[] {
+    const mediaElements: HTMLMediaElement[] = [];
     const containerSelectors = this.siteHandler.getVideoContainerSelectors();
     const audioEnabled = this.config.settings.audioBoolean;
 
     containerSelectors.forEach((selector) => {
       try {
         const containers = document.querySelectorAll(selector);
-        containers.forEach((container) => {
+        containers.forEach((container: Element) => {
           const containerMedia = window.VSC.DomUtils.findMediaElements(container, audioEnabled);
           mediaElements.push(...containerMedia);
         });
-      } catch (e) {
-        window.VSC.logger.warn(`Invalid selector "${selector}": ${e.message}`);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        window.VSC.logger.warn(`Invalid selector "${selector}": ${message}`);
       }
     });
 
@@ -147,8 +163,8 @@ class MediaElementObserver {
    * @param {Document} document - Document to scan
    * @returns {Array<HTMLMediaElement>} All found media elements
    */
-  scanAll(document) {
-    const allMedia = [];
+  scanAll(document: Document): HTMLMediaElement[] {
+    const allMedia: HTMLMediaElement[] = [];
 
     // Regular scan
     const regularMedia = this.scanForMedia(document);
@@ -174,7 +190,7 @@ class MediaElementObserver {
    * @param {HTMLMediaElement} media - Media element to check
    * @returns {boolean} True if valid
    */
-  isValidMediaElement(media) {
+  isValidMediaElement(media: HTMLMediaElement): boolean {
     // Skip videos that are not in the DOM
     if (!media.isConnected) {
       window.VSC.logger.debug('Video not in DOM');
@@ -203,7 +219,7 @@ class MediaElementObserver {
    * @param {HTMLMediaElement} media - Media element to check
    * @returns {boolean} True if controller should start hidden
    */
-  shouldStartHidden(media) {
+  shouldStartHidden(media: HTMLMediaElement): boolean {
     // For audio elements, only hide controller if audio support is disabled
     // Audio players are often intentionally invisible but still functional
     if (media.tagName === 'AUDIO') {
@@ -214,7 +230,10 @@ class MediaElementObserver {
 
       // Audio elements can be functional even when invisible
       // Only hide if the audio element is explicitly disabled or has no functionality
-      if (media.disabled || media.style.pointerEvents === 'none') {
+      if (
+        (media as HTMLMediaElement & { disabled?: boolean }).disabled ||
+        media.style.pointerEvents === 'none'
+      ) {
         window.VSC.logger.debug('Audio controller hidden - element disabled or no pointer events');
         return true;
       }
@@ -242,9 +261,12 @@ class MediaElementObserver {
    * @param {HTMLMediaElement} media - Media element
    * @returns {HTMLElement} Parent element for positioning
    */
-  findControllerParent(media) {
-    const positioning = this.siteHandler.getControllerPosition(media.parentElement, media);
-    return positioning.targetParent || media.parentElement;
+  findControllerParent(media: HTMLMediaElement): HTMLElement {
+    const positioning = this.siteHandler.getControllerPosition(
+      media.parentElement || document.body,
+      media
+    );
+    return positioning.targetParent || media.parentElement || document.body;
   }
 }
 
