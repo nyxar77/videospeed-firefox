@@ -11,6 +11,7 @@ import '../../utils/logger.ts';
 import '../../core/storage-manager.ts';
 import '../../core/settings.ts';
 import type { KeyBinding, KeyModifiers, Settings } from '../../types/settings.ts';
+import { createSettingsExport, parseSettingsImport } from '../../utils/settings-transfer.ts';
 
 // UI helpers
 import { createRow } from './row-renderer.ts';
@@ -941,13 +942,14 @@ async function export_settings(): Promise<void> {
       window.VSC.videoSpeedConfig = new window.VSC.VideoSpeedConfig();
     }
     await window.VSC.videoSpeedConfig.load();
-    const settings = { ...window.VSC.videoSpeedConfig.settings };
+    const settings = createSettingsExport(window.VSC.videoSpeedConfig.settings);
 
     const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'videospeed-settings.tson';
+    const date = settings.exportedAt.slice(0, 10);
+    a.download = `videospeed-settings-${date}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -990,25 +992,24 @@ async function handleImportFile(event: Event & { target: HTMLInputElement }): Pr
 
   try {
     const text = await file.text();
-    let imported: Any;
+    let imported: unknown;
     try {
       imported = JSON.parse(text);
     } catch (e: unknown) {
       throw new Error('File is not valid JSON', { cause: e });
     }
 
-    if (!imported || typeof imported !== 'object' || !Array.isArray(imported.keyBindings)) {
-      throw new Error('File does not look like a Video Speed Controller settings file');
-    }
+    const settings = parseSettingsImport(imported);
 
     // Ensure config is initialized
     if (!window.VSC.videoSpeedConfig) {
       window.VSC.videoSpeedConfig = new window.VSC.VideoSpeedConfig();
     }
+    await window.VSC.videoSpeedConfig.load();
 
-    // Clear existing storage and write the imported settings
-    await window.VSC.StorageManager.clear();
-    const ok = await window.VSC.videoSpeedConfig.save(imported);
+    // A validated export contains every durable setting. Save it as a single
+    // merge so an interrupted write cannot erase the user's existing config.
+    const ok = await window.VSC.videoSpeedConfig.save(settings);
     if (!ok) {
       throw new Error('Failed to write imported settings to storage');
     }
