@@ -13,10 +13,11 @@
     "test:e2e": "npm run build && node tests/e2e/run-e2e.js",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
     "serve": "python3 -m http.server 8000",
-    "lint": "eslint 'src/**/*.js' 'tests/**/*.js'",
-    "lint:fix": "eslint 'src/**/*.js' 'tests/**/*.js' --fix",
-    "format": "prettier --write 'src/**/*.js' 'tests/**/*.js'",
+    "lint": "eslint 'src/**/*.{js,ts}' 'tests/**/*.{js,ts}'",
+    "lint:fix": "eslint 'src/**/*.{js,ts}' 'tests/**/*.{js,ts}' --fix",
+    "format": "prettier --write 'src/**/*.{js,ts}' 'tests/**/*.{js,ts}'",
     "build:release": "RELEASE=1 node scripts/build.mjs",
     "source:setup": "node scripts/source-setup.mjs",
     "prerelease": "npm run clean && npm test",
@@ -26,7 +27,7 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "*.js": [
+    "*.{js,ts}": [
       "eslint --fix",
       "prettier --write"
     ],
@@ -36,6 +37,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@types/node": "^26.1.2",
     "@vitest/coverage-v8": "4.1.4",
     "archiver": "^8.0.0",
     "esbuild": "^0.28.1",
@@ -47,6 +49,8 @@
     "lint-staged": "^16.4.0",
     "prettier": "^3.1.0",
     "puppeteer": "^24.10.2",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.65.0",
     "vitest": "^4.1.1"
   },
   "engines": {

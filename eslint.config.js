@@ -1,8 +1,13 @@
 import js from '@eslint/js';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 export default [
   js.configs.recommended,
+  ...tseslint.configs.recommended.map((config) => ({
+    ...config,
+    files: ['**/*.{ts,tsx}'],
+  })),
   {
     languageOptions: {
       ecmaVersion: 2022,
@@ -36,7 +41,7 @@ export default [
     },
   },
   {
-    files: ['tests/**/*.js'],
+    files: ['tests/**/*.{js,ts}'],
     languageOptions: {
       globals: {
         describe: 'readonly',
@@ -51,6 +56,16 @@ export default [
     },
     rules: {
       'no-unused-expressions': 'off',
+    },
+  },
+  {
+    files: ['**/*.ts'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
+      ],
+      '@typescript-eslint/no-explicit-any': 'off',
     },
   },
   {
