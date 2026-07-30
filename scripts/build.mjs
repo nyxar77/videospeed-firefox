@@ -87,16 +87,16 @@ async function copyStaticFiles() {
       'src/assets': path.join(outDir, 'assets'),
       'src/ui': path.join(outDir, 'ui'),
       'src/styles': path.join(outDir, 'styles'),
-      'LICENSE': path.join(outDir, 'LICENSE'),
+      LICENSE: path.join(outDir, 'LICENSE'),
       'CONTRIBUTING.md': path.join(outDir, 'CONTRIBUTING.md'),
       'PRIVACY.md': path.join(outDir, 'PRIVACY.md'),
-      'README.md': path.join(outDir, 'README.md')
+      'README.md': path.join(outDir, 'README.md'),
     };
 
     // Perform copy operations
     for (const [src, dest] of Object.entries(pathsToCopy)) {
       await fs.copy(path.join(rootDir, src), dest, {
-        filter: (src) => !path.basename(src).endsWith('.js')
+        filter: (src) => !/\.(js|ts)$/.test(path.basename(src)),
       });
     }
 
@@ -115,10 +115,10 @@ async function build() {
       ...common,
       entryPoints: {
         'content-bridge': 'src/entries/content-bridge.js',
-        'inject': 'src/entries/inject-entry.js',
-        'background': 'src/background.js',
+        inject: 'src/entries/inject-entry.js',
+        background: 'src/background.js',
         'ui/popup/popup': 'src/ui/popup/popup.js',
-        'ui/options/options': 'src/ui/options/options.js'
+        'ui/options/options': 'src/ui/options/options.js',
       },
       outdir: 'dist',
     };

@@ -11,8 +11,8 @@ import {
   PREDEFINED_ACTIONS,
   BLACKLISTED_CODES,
   DEFAULT_BINDINGS,
-} from './key-maps.js';
-import { DEFAULT_CONTROLLER_CSS } from '../styles/controller-css-defaults.js';
+} from './key-maps.ts';
+import { DEFAULT_CONTROLLER_CSS } from '../styles/controller-css-defaults.ts';
 
 window.VSC = window.VSC || {};
 

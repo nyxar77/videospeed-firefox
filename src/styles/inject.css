@@ -4,7 +4,7 @@
  * Base vsc-controller rules live here for timing safety: manifest CSS is
  * available before the first controller element is created. Site-specific
  * overrides are in the user-editable "Controller CSS" setting
- * (src/styles/controller-css-defaults.js), injected as a <style> by inject.js.
+ * (src/styles/controller-css-defaults.ts), injected as a <style> by inject.js.
  */
 vsc-controller {
   /* Out of normal flow by default; site overrides change to relative */

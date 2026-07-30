@@ -7,7 +7,13 @@
 
 const regStrip = /^[\r\t\f\v ]+|[\r\t\f\v ]+$/gm;
 const regEndsWithFlags = /\/(?!.*(.).*\1)[gimsuy]*$/;
-const escapeRegExp = (str) => str.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+const escapeRegExp = (str: string): string => str.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+
+export interface SiteRule {
+  pattern: string;
+  enabled?: boolean;
+  speed?: number | null;
+}
 
 /**
  * Compile a pattern string into a RegExp.
@@ -20,7 +26,7 @@ const escapeRegExp = (str) => str.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
  * @param {string} raw - Pattern string (trimmed)
  * @returns {RegExp|null} Compiled regex, or null if invalid
  */
-function compilePattern(raw) {
+function compilePattern(raw: string): RegExp | null {
   const pattern = raw.replace(regStrip, '');
   if (pattern.length === 0) {
     return null;
@@ -63,7 +69,10 @@ function compilePattern(raw) {
  * @param {string} href - URL to test
  * @returns {Object|null} First matching rule, or null
  */
-export function matchSiteRule(rules, href) {
+export function matchSiteRule(
+  rules: readonly SiteRule[] | null | undefined,
+  href: string
+): SiteRule | null {
   if (!rules || !rules.length) {
     return null;
   }
@@ -89,7 +98,7 @@ export function matchSiteRule(rules, href) {
 window.VSC = window.VSC || {};
 window.VSC.matchSiteRule = matchSiteRule;
 
-export function isBlacklisted(blacklist, href) {
+export function isBlacklisted(blacklist: string | null | undefined, href: string): boolean {
   if (!blacklist) {
     return false;
   }

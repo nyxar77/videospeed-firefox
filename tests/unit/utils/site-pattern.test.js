@@ -1,8 +1,8 @@
 /**
- * Unit tests for site-pattern.js — matchSiteRule() and isBlacklisted() wrapper
+ * Unit tests for site-pattern.ts — matchSiteRule() and isBlacklisted() wrapper
  */
 
-import { matchSiteRule, isBlacklisted } from '../../../src/utils/site-pattern.js';
+import { matchSiteRule, isBlacklisted } from '../../../src/utils/site-pattern.ts';
 
 // --- matchSiteRule() ---
 

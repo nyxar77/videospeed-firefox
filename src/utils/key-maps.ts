@@ -10,17 +10,37 @@
  * Hardcoded mapping for the 9 predefined bindings. Zero ambiguity —
  * these are the exact physical keys the extension has always used.
  */
-export const PREDEFINED_CODE_MAP = Object.freeze({
-  83: { code: 'KeyS', displayKey: 's' }, // slower
-  68: { code: 'KeyD', displayKey: 'd' }, // faster
-  90: { code: 'KeyZ', displayKey: 'z' }, // rewind
-  88: { code: 'KeyX', displayKey: 'x' }, // advance
-  82: { code: 'KeyR', displayKey: 'r' }, // reset
-  71: { code: 'KeyG', displayKey: 'g' }, // fast
-  86: { code: 'KeyV', displayKey: 'v' }, // display
-  77: { code: 'KeyM', displayKey: 'm' }, // mark
-  74: { code: 'KeyJ', displayKey: 'j' }, // jump
-});
+export type ActionName =
+  | 'slower'
+  | 'faster'
+  | 'rewind'
+  | 'advance'
+  | 'reset'
+  | 'fast'
+  | 'display'
+  | 'mark'
+  | 'jump';
+
+export interface KeyBindingDefaults {
+  code: string;
+  key: number;
+  keyCode: number;
+  displayKey: string;
+  value: number;
+}
+
+export const PREDEFINED_CODE_MAP: Readonly<Record<number, { code: string; displayKey: string }>> =
+  Object.freeze({
+    83: { code: 'KeyS', displayKey: 's' }, // slower
+    68: { code: 'KeyD', displayKey: 'd' }, // faster
+    90: { code: 'KeyZ', displayKey: 'z' }, // rewind
+    88: { code: 'KeyX', displayKey: 'x' }, // advance
+    82: { code: 'KeyR', displayKey: 'r' }, // reset
+    71: { code: 'KeyG', displayKey: 'g' }, // fast
+    86: { code: 'KeyV', displayKey: 'v' }, // display
+    77: { code: 'KeyM', displayKey: 'm' }, // mark
+    74: { code: 'KeyJ', displayKey: 'j' }, // jump
+  });
 
 /**
  * Static lookup table mapping legacy keyCode integers to event.code strings.
@@ -31,7 +51,7 @@ export const PREDEFINED_CODE_MAP = Object.freeze({
  * Where a keyCode maps to multiple physical keys (e.g., 13→Enter vs NumpadEnter),
  * the primary (non-numpad) key is chosen.
  */
-export const KEYCODE_TO_CODE = Object.freeze({
+export const KEYCODE_TO_CODE: Readonly<Record<number, string>> = Object.freeze({
   // Control keys
   8: 'Backspace',
   13: 'Enter', // NumpadEnter also produces 13 — we pick main Enter
@@ -152,7 +172,7 @@ export const KEYCODE_TO_CODE = Object.freeze({
  * @param {string} code - event.code value (e.g., "KeyS", "Digit5", "F10")
  * @returns {string} Display-friendly label (e.g., "s", "5", "F10")
  */
-export function displayKeyFromCode(code) {
+export function displayKeyFromCode(code: string): string {
   if (!code) {
     return '';
   }
@@ -169,7 +189,7 @@ export function displayKeyFromCode(code) {
     return `Num ${code.charAt(6)}`;
   }
   // Numpad operators
-  const numpadOps = {
+  const numpadOps: Readonly<Record<string, string>> = {
     NumpadEnter: 'Num Enter',
     NumpadMultiply: 'Num *',
     NumpadAdd: 'Num +',
@@ -181,7 +201,7 @@ export function displayKeyFromCode(code) {
     return numpadOps[code];
   }
   // Punctuation: map code name to the actual character
-  const punctuation = {
+  const punctuation: Readonly<Record<string, string>> = {
     Semicolon: ';',
     Equal: '=',
     Comma: ',',
@@ -203,7 +223,7 @@ export function displayKeyFromCode(code) {
 }
 
 /** All predefined action names, in display order. */
-export const PREDEFINED_ACTIONS = [
+export const PREDEFINED_ACTIONS: readonly ActionName[] = [
   'slower',
   'faster',
   'rewind',
@@ -220,7 +240,7 @@ export const PREDEFINED_ACTIONS = [
  * Single source of truth — used by DEFAULT_SETTINGS (constants.js),
  * migration Phase 4 (background.js), and restore_defaults (options.js).
  */
-export const DEFAULT_BINDINGS = Object.freeze({
+export const DEFAULT_BINDINGS: Readonly<Record<ActionName, KeyBindingDefaults>> = Object.freeze({
   slower: { code: 'KeyS', key: 83, keyCode: 83, displayKey: 's', value: 0.1 },
   faster: { code: 'KeyD', key: 68, keyCode: 68, displayKey: 'd', value: 0.1 },
   rewind: { code: 'KeyZ', key: 90, keyCode: 90, displayKey: 'z', value: 10 },
@@ -233,7 +253,7 @@ export const DEFAULT_BINDINGS = Object.freeze({
 });
 
 /** event.code values that must not be recorded as shortcuts. */
-export const BLACKLISTED_CODES = new Set([
+export const BLACKLISTED_CODES: ReadonlySet<string> = new Set([
   'Tab',
   'ShiftLeft',
   'ShiftRight',

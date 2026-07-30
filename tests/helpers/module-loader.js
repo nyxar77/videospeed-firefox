@@ -16,7 +16,7 @@ export async function loadCoreModules() {
 
   // Site pattern matching — must come before settings.js (mirrors inject-entry.js).
   // The module self-registers on window.VSC.matchSiteRule.
-  await import('../../src/utils/site-pattern.js');
+  await import('../../src/utils/site-pattern.ts');
 
   // Storage and settings
   await import('../../src/core/storage-manager.js');

@@ -98,7 +98,7 @@ import {
   displayKeyFromCode,
   PREDEFINED_ACTIONS,
   DEFAULT_BINDINGS,
-} from './utils/key-maps.js';
+} from './utils/key-maps.ts';
 
 /**
  * Migrate key bindings from v1 (keyCode integers) to v2 (event.code strings).

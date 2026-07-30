@@ -9,7 +9,7 @@
  * @param {string} href - URL to check
  * @returns {boolean} Whether URL is blacklisted
  */
-export function isBlacklisted(blacklist, href) {
+export function isBlacklisted(blacklist: string | null | undefined, href: string): boolean {
   if (!blacklist) {
     return false;
   }
@@ -17,7 +17,7 @@ export function isBlacklisted(blacklist, href) {
   const regStrip = /^[\r\t\f\v ]+|[\r\t\f\v ]+$/gm;
   const regEndsWithFlags = /\/(?!.*(.).*\1)[gimsuy]*$/;
 
-  const escapeRegExp = (str) => str.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
+  const escapeRegExp = (str: string): string => str.replace(/[|\\{}()[\]^$+*?.]/g, '\\$&');
 
   for (const rawMatch of blacklist.split('\n')) {
     const match = rawMatch.replace(regStrip, '');

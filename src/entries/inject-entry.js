@@ -13,7 +13,7 @@ import '../utils/event-manager.js';
 
 // Site pattern matching — side-effect import registers window.VSC.matchSiteRule.
 // Must come before settings.js so load() can call it.
-import '../utils/site-pattern.js';
+import '../utils/site-pattern.ts';
 
 // Storage and settings - depends on utils
 import '../core/storage-manager.js';
