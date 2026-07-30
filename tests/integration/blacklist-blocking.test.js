@@ -3,8 +3,8 @@
  * Tests that controller does not load on blacklisted sites
  */
 
-import { installChromeMock, cleanupChromeMock, resetMockStorage } from '../helpers/chrome-mock.js';
-import { createMockVideo, createMockDOM } from '../helpers/test-utils.js';
+import { installChromeMock, cleanupChromeMock, resetMockStorage } from '../helpers/chrome-mock.ts';
+import { createMockVideo, createMockDOM } from '../helpers/test-utils.ts';
 import { isBlacklisted } from '../../src/utils/blacklist.ts';
 describe('BlacklistBlocking', () => {
   let mockDOM;

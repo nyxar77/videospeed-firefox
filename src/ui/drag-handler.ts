@@ -100,3 +100,4 @@ class DragHandler {
 
 // Create singleton instance
 window.VSC.DragHandler = DragHandler;
+export {};

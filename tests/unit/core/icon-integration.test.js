@@ -2,7 +2,7 @@
  * Tests for icon integration (controller lifecycle events)
  */
 
-import { installChromeMock, cleanupChromeMock } from '../../helpers/chrome-mock.js';
+import { installChromeMock, cleanupChromeMock } from '../../helpers/chrome-mock.ts';
 
 // Load all required modules
 

@@ -1,5 +1,5 @@
 // Import necessary modules
-import { installChromeMock, cleanupChromeMock } from '../../helpers/chrome-mock.js';
+import { installChromeMock, cleanupChromeMock } from '../../helpers/chrome-mock.ts';
 
 // Load all required modules
 

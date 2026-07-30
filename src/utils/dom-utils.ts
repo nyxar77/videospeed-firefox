@@ -171,3 +171,4 @@ window.VSC.DomUtils.findShadowMedia = function (
 };
 
 // Global variables available for both browser and testing
+export {};

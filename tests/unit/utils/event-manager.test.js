@@ -8,8 +8,8 @@ import {
   installChromeMock,
   cleanupChromeMock,
   resetMockStorage,
-} from '../../helpers/chrome-mock.js';
-import { createMockVideo } from '../../helpers/test-utils.js';
+} from '../../helpers/chrome-mock.ts';
+import { createMockVideo } from '../../helpers/test-utils.ts';
 describe('EventManager', () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });

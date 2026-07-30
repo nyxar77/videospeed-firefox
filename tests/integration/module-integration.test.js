@@ -3,8 +3,8 @@
  * Using global variables to match browser extension architecture
  */
 
-import { installChromeMock, cleanupChromeMock, resetMockStorage } from '../helpers/chrome-mock.js';
-import { createMockVideo, createMockDOM } from '../helpers/test-utils.js';
+import { installChromeMock, cleanupChromeMock, resetMockStorage } from '../helpers/chrome-mock.ts';
+import { createMockVideo, createMockDOM } from '../helpers/test-utils.ts';
 
 // Load all required modules
 

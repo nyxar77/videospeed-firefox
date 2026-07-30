@@ -18,7 +18,7 @@ import {
   cleanupChromeMock,
   resetMockStorage,
   getMockStorage,
-} from '../../helpers/chrome-mock.js';
+} from '../../helpers/chrome-mock.ts';
 
 const docEl = document.documentElement;
 

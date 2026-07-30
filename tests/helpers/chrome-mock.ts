@@ -1,3 +1,6 @@
+// The mock intentionally models only the small, dynamic subset of the WebExtension API used by tests.
+// @ts-nocheck
+
 /**
  * Chrome API mock for testing
  */

@@ -7,8 +7,8 @@ import {
   installChromeMock,
   cleanupChromeMock,
   resetMockStorage,
-} from '../../helpers/chrome-mock.js';
-import { createMockDOM } from '../../helpers/test-utils.js';
+} from '../../helpers/chrome-mock.ts';
+import { createMockDOM } from '../../helpers/test-utils.ts';
 
 // Load all required modules
 

@@ -4,8 +4,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
-    include: ['tests/unit/**/*.test.js', 'tests/integration/**/*.test.js'],
-    setupFiles: ['./tests/helpers/vitest-setup.js'],
+    include: ['tests/unit/**/*.test.{js,ts}', 'tests/integration/**/*.test.{js,ts}'],
+    setupFiles: ['./tests/helpers/vitest-setup.ts'],
     testTimeout: 10000,
     hookTimeout: 10000,
     pool: 'forks',

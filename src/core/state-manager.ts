@@ -132,3 +132,4 @@ window.VSC.StateManager = VSCStateManager;
 window.VSC.stateManager = new VSCStateManager();
 
 window.VSC.logger?.info('State Manager module loaded');
+export {};

@@ -4,7 +4,7 @@
  * StorageManager detects context at module eval time via:
  *   const hasChrome = typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync
  *
- * The global vitest-setup.js installs chrome mock before modules load, so the
+ * The global vitest-setup.ts installs chrome mock before modules load, so the
  * shared StorageManager instance uses chrome.storage paths. To test the MAIN
  * world paths, we:
  *   1. Remove globalThis.chrome (so hasChrome = false)
@@ -15,7 +15,7 @@
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { installChromeMock } from '../../helpers/chrome-mock.js';
+import { installChromeMock } from '../../helpers/chrome-mock.ts';
 
 const docEl = document.documentElement;
 

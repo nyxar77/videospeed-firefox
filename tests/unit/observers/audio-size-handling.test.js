@@ -2,8 +2,8 @@
  * Tests for audio element size handling
  */
 
-import { installChromeMock, cleanupChromeMock } from '../../helpers/chrome-mock.js';
-import { createMockDOM } from '../../helpers/test-utils.js';
+import { installChromeMock, cleanupChromeMock } from '../../helpers/chrome-mock.ts';
+import { createMockDOM } from '../../helpers/test-utils.ts';
 
 // Load all required modules
 

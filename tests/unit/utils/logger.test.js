@@ -34,7 +34,7 @@ function captureConsole() {
 }
 
 describe('Logger', () => {
-  // Lazy — window.VSC is populated by vitest-setup.js beforeAll
+  // Lazy — window.VSC is populated by vitest-setup.ts beforeAll
   const LOG_LEVELS = () => window.VSC.Constants.LOG_LEVELS;
 
   let capture;

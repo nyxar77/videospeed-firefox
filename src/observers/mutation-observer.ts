@@ -321,3 +321,4 @@ class VideoMutationObserver {
 
 // Create singleton instance
 window.VSC.VideoMutationObserver = VideoMutationObserver;
+export {};

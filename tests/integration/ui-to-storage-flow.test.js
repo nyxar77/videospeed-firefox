@@ -3,8 +3,8 @@
  * Tests the complete path from user interactions to storage persistence
  */
 
-import { installChromeMock, cleanupChromeMock, resetMockStorage } from '../helpers/chrome-mock.js';
-import { createMockVideo, createMockDOM } from '../helpers/test-utils.js';
+import { installChromeMock, cleanupChromeMock, resetMockStorage } from '../helpers/chrome-mock.ts';
+import { createMockVideo, createMockDOM } from '../helpers/test-utils.ts';
 
 // Load all required modules
 

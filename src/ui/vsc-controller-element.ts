@@ -8,3 +8,4 @@
  * No registration is needed — CSS selectors, querySelector, shadow DOM, and
  * tagName all work on unregistered hyphenated elements.
  */
+export {};

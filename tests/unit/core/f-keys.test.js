@@ -7,7 +7,7 @@ import {
   installChromeMock,
   cleanupChromeMock,
   resetMockStorage,
-} from '../../helpers/chrome-mock.js';
+} from '../../helpers/chrome-mock.ts';
 
 // Load all core modules (ActionHandler depends on state-manager, site-handlers, etc.)
 

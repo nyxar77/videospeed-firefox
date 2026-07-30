@@ -141,7 +141,7 @@ function validateExtension() {
     const manifest = JSON.parse(readFileSync(join(extensionRoot, 'manifest.json'), 'utf8'));
     const manifestStr = JSON.stringify(manifest);
     test('No reference to injector.js', !manifestStr.includes('injector.js'));
-    test('No reference to module-loader.js', !manifestStr.includes('module-loader.js'));
+    test('No reference to module-loader.ts', !manifestStr.includes('module-loader.ts'));
   } catch (error) {
     test('Manifest clean of old files', false, error.message);
   }

@@ -216,3 +216,4 @@ if (!window.VSC.logger) {
   // Create singleton instance
   window.VSC.logger = new Logger();
 }
+export {};

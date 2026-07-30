@@ -293,3 +293,4 @@ class ShadowDOMManager {
 
 // Create singleton instance
 window.VSC.ShadowDOMManager = ShadowDOMManager;
+export {};

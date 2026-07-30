@@ -7,7 +7,7 @@ import {
   installChromeMock,
   cleanupChromeMock,
   resetMockStorage,
-} from '../../helpers/chrome-mock.js';
+} from '../../helpers/chrome-mock.ts';
 import { vi } from 'vitest';
 
 // These tests run with chrome.storage mock (extension context).

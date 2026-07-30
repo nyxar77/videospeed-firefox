@@ -3,8 +3,8 @@
  * Tests the complete flow: Controller creation → State tracking → Cleanup
  */
 
-import { installChromeMock, cleanupChromeMock, resetMockStorage } from '../helpers/chrome-mock.js';
-import { createMockVideo } from '../helpers/test-utils.js';
+import { installChromeMock, cleanupChromeMock, resetMockStorage } from '../helpers/chrome-mock.ts';
+import { createMockVideo } from '../helpers/test-utils.ts';
 describe('StateManagerIntegration', () => {
   beforeEach(() => {
     installChromeMock();

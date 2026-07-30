@@ -1,3 +1,6 @@
+// The DOM mocks replace readonly browser properties at runtime to model media behavior.
+// @ts-nocheck
+
 /**
  * Test utilities and helpers
  */

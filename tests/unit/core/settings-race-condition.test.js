@@ -13,7 +13,7 @@ import {
   resetMockStorage,
   getMockStorage,
   simulateExternalStorageWrite,
-} from '../../helpers/chrome-mock.js';
+} from '../../helpers/chrome-mock.ts';
 import { vi } from 'vitest';
 
 // These tests run with chrome.storage mock installed (extension context),

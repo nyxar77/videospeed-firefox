@@ -1,3 +1,6 @@
+// jsdom lacks several browser primitives; this setup deliberately patches them for tests.
+// @ts-nocheck
+
 /**
  * Vitest setup file — global test environment for all test files.
  *
@@ -6,8 +9,8 @@
  */
 
 import { afterEach, beforeAll, beforeEach } from 'vitest';
-import { installChromeMock, resetMockStorage } from './chrome-mock.js';
-import { loadInjectModules } from './module-loader.js';
+import { installChromeMock, resetMockStorage } from './chrome-mock.ts';
+import { loadInjectModules } from './module-loader.ts';
 
 // Install Chrome extension API mock
 installChromeMock();

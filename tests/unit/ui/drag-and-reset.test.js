@@ -6,8 +6,8 @@ import {
   installChromeMock,
   cleanupChromeMock,
   resetMockStorage,
-} from '../../helpers/chrome-mock.js';
-import { createMockVideo, createMockDOM } from '../../helpers/test-utils.js';
+} from '../../helpers/chrome-mock.ts';
+import { createMockVideo, createMockDOM } from '../../helpers/test-utils.ts';
 let mockDOM;
 
 describe('DragAndReset', () => {

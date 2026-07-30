@@ -9,9 +9,9 @@ import {
   installChromeMock,
   cleanupChromeMock,
   resetMockStorage,
-} from '../../helpers/chrome-mock.js';
+} from '../../helpers/chrome-mock.ts';
 // --- Helpers that mirror background.js migration logic ---
-// Lazy accessors — window.VSC is populated by vitest-setup.js beforeAll
+// Lazy accessors — window.VSC is populated by vitest-setup.ts beforeAll
 
 const Constants = () => window.VSC.Constants;
 const PREDEFINED_CODE_MAP = () => Constants().PREDEFINED_CODE_MAP;
