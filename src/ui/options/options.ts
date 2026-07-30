@@ -16,7 +16,9 @@ import {
   applyThemeToDocument,
   CATPPUCCIN_ACCENTS,
   CATPPUCCIN_FLAVORS,
+  getControllerThemeAccentColor,
   getControllerThemeLabel,
+  isControllerTheme,
   type ControllerTheme,
 } from '../controller-themes.ts';
 
@@ -64,37 +66,82 @@ function queryAll<T = Any>(selector: string): T[] {
 
 let keyBindings: KeyBinding[] = [];
 let validationTimeout: ReturnType<typeof setTimeout> | null = null;
+let selectedCatppuccinTheme: ControllerTheme = 'catppuccin-mocha-mauve';
 
-function populateControllerThemeOptions(): void {
-  const select = getElement<HTMLSelectElement>('controllerTheme');
-  select.replaceChildren();
-
-  const defaultOption = document.createElement('option');
-  defaultOption.value = 'default';
-  defaultOption.textContent = 'Default';
-  select.appendChild(defaultOption);
-
-  for (const flavor of CATPPUCCIN_FLAVORS) {
-    const group = document.createElement('optgroup');
-    group.label = `Catppuccin ${flavor[0].toUpperCase()}${flavor.slice(1)}`;
-    for (const accent of CATPPUCCIN_ACCENTS) {
-      const theme = `catppuccin-${flavor}-${accent}` as ControllerTheme;
-      const option = document.createElement('option');
-      option.value = theme;
-      option.textContent = getControllerThemeLabel(theme);
-      group.appendChild(option);
-    }
-    select.appendChild(group);
+function getSelectedControllerTheme(): ControllerTheme {
+  const mode = getElement<HTMLSelectElement>('controllerTheme').value;
+  if (mode === 'catppuccin') {
+    return selectedCatppuccinTheme;
   }
-
-  const customOption = document.createElement('option');
-  customOption.value = 'custom';
-  customOption.textContent = 'Custom CSS';
-  select.appendChild(customOption);
+  return mode === 'custom' ? 'custom' : 'default';
 }
 
-function updateCustomThemeVisibility(theme: unknown): void {
-  getElement<HTMLElement>('customThemeSection').hidden = theme !== 'custom';
+function getSelectedCatppuccinFlavor(): (typeof CATPPUCCIN_FLAVORS)[number] {
+  const [, flavor] = selectedCatppuccinTheme.split('-');
+  return CATPPUCCIN_FLAVORS.includes(flavor as (typeof CATPPUCCIN_FLAVORS)[number])
+    ? (flavor as (typeof CATPPUCCIN_FLAVORS)[number])
+    : 'mocha';
+}
+
+function renderCatppuccinPicker(): void {
+  const flavor = getSelectedCatppuccinFlavor();
+  const flavors = getElement<HTMLElement>('catppuccinFlavors');
+  const accents = getElement<HTMLElement>('catppuccinAccents');
+  flavors.replaceChildren();
+  accents.replaceChildren();
+
+  for (const flavor of CATPPUCCIN_FLAVORS) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.flavor = flavor;
+    button.className = 'catppuccin-flavor';
+    button.classList.toggle('active', flavor === getSelectedCatppuccinFlavor());
+    button.textContent = `${flavor[0].toUpperCase()}${flavor.slice(1)}`;
+    button.setAttribute('role', 'tab');
+    button.setAttribute('aria-selected', String(flavor === getSelectedCatppuccinFlavor()));
+    flavors.appendChild(button);
+  }
+
+  for (const accent of CATPPUCCIN_ACCENTS) {
+    const theme = `catppuccin-${flavor}-${accent}` as ControllerTheme;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.dataset.theme = theme;
+    button.className = 'catppuccin-accent';
+    button.classList.toggle('active', theme === selectedCatppuccinTheme);
+    button.style.setProperty(
+      '--swatch-color',
+      getControllerThemeAccentColor(theme) ?? 'transparent'
+    );
+    button.title = getControllerThemeLabel(theme);
+    button.setAttribute('aria-label', getControllerThemeLabel(theme));
+    button.setAttribute('aria-pressed', String(theme === selectedCatppuccinTheme));
+    accents.appendChild(button);
+  }
+
+  getElement('catppuccinSelection').textContent = getControllerThemeLabel(selectedCatppuccinTheme);
+}
+
+function updateThemePicker(theme: unknown): void {
+  if (isControllerTheme(theme) && theme.startsWith('catppuccin-')) {
+    selectedCatppuccinTheme = theme;
+  }
+
+  const mode = getElement<HTMLSelectElement>('controllerTheme');
+  if (theme === 'custom') {
+    mode.value = 'custom';
+  } else if (
+    theme === 'catppuccin' ||
+    (isControllerTheme(theme) && theme.startsWith('catppuccin-'))
+  ) {
+    mode.value = 'catppuccin';
+  } else {
+    mode.value = 'default';
+  }
+  getElement<HTMLElement>('customThemeSection').hidden = mode.value !== 'custom';
+  getElement<HTMLElement>('catppuccinPicker').hidden = mode.value !== 'catppuccin';
+  renderCatppuccinPicker();
+  applyThemeToDocument(document, getSelectedControllerTheme());
 }
 
 function getErrorMessage(error: unknown): string {
@@ -801,7 +848,7 @@ async function save_options(): Promise<void> {
     const startHidden = getElement('startHidden').checked;
     const controllerOpacity = Number(getElement('controllerOpacity').value);
     const controllerButtonSize = Number(getElement('controllerButtonSize').value);
-    const controllerTheme = getElement('controllerTheme').value;
+    const controllerTheme = getSelectedControllerTheme();
     const logLevel = parseInt(getElement('logLevel').value);
     const siteRules = collectSiteRules();
     const customCSS = getElement('controllerCSS').value;
@@ -890,9 +937,7 @@ async function restore_options(): Promise<void> {
     getElement('startHidden').checked = storage.startHidden;
     getElement('controllerOpacity').value = storage.controllerOpacity;
     getElement('controllerButtonSize').value = storage.controllerButtonSize;
-    getElement('controllerTheme').value = storage.controllerTheme;
-    applyThemeToDocument(document, storage.controllerTheme);
-    updateCustomThemeVisibility(storage.controllerTheme);
+    updateThemePicker(storage.controllerTheme);
     getElement('logLevel').value = storage.logLevel;
     getElement('controllerCSS').value = storage.customCSS ?? '';
 
@@ -1096,7 +1141,6 @@ document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
     console.warn('Storage operation failed:', error.message, data);
   });
 
-  populateControllerThemeOptions();
   await restore_options();
 
   const saveBtn = getElement('save');
@@ -1118,9 +1162,31 @@ document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
   document.body.addEventListener('change', markDirty);
 
   getElement<HTMLSelectElement>('controllerTheme').addEventListener('change', (event) => {
-    const theme = (event.target as HTMLSelectElement).value;
-    applyThemeToDocument(document, theme);
-    updateCustomThemeVisibility(theme);
+    updateThemePicker((event.target as HTMLSelectElement).value);
+  });
+
+  getElement('catppuccinFlavors').addEventListener('click', (event: MouseEvent) => {
+    const flavor = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-flavor]')
+      ?.dataset.flavor;
+    if (!flavor || !CATPPUCCIN_FLAVORS.includes(flavor as (typeof CATPPUCCIN_FLAVORS)[number])) {
+      return;
+    }
+    selectedCatppuccinTheme = `catppuccin-${flavor}-mauve` as ControllerTheme;
+    renderCatppuccinPicker();
+    applyThemeToDocument(document, selectedCatppuccinTheme);
+    getElement('controllerTheme').dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  getElement('catppuccinAccents').addEventListener('click', (event: MouseEvent) => {
+    const theme = (event.target as HTMLElement).closest<HTMLButtonElement>('[data-theme]')?.dataset
+      .theme;
+    if (!isControllerTheme(theme) || !theme.startsWith('catppuccin-')) {
+      return;
+    }
+    selectedCatppuccinTheme = theme;
+    renderCatppuccinPicker();
+    applyThemeToDocument(document, selectedCatppuccinTheme);
+    getElement('controllerTheme').dispatchEvent(new Event('input', { bubbles: true }));
   });
 
   saveBtn.addEventListener('click', async (e: MouseEvent) => {

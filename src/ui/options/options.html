@@ -74,9 +74,31 @@
         <div class="row">
           <label for="controllerTheme"
             >Controller theme<br />
-            <em>Choose Default, any Catppuccin accent, or Custom CSS.</em>
+            <em>Choose Default, a Catppuccin palette, or Custom CSS.</em>
           </label>
-          <select id="controllerTheme" aria-label="Controller theme"></select>
+          <select id="controllerTheme" aria-label="Controller theme">
+            <option value="default">Default</option>
+            <option value="catppuccin">Catppuccin</option>
+            <option value="custom">Custom CSS</option>
+          </select>
+        </div>
+        <div id="catppuccinPicker" class="catppuccin-picker" hidden>
+          <div class="catppuccin-picker-heading">
+            <div>
+              <strong>Catppuccin palette</strong>
+              <em>Pick a flavour, then an accent. Mauve is the default.</em>
+            </div>
+            <span id="catppuccinSelection" class="catppuccin-selection"></span>
+          </div>
+          <div id="catppuccinFlavors" class="catppuccin-flavors" role="tablist"></div>
+          <div
+            id="catppuccinAccents"
+            class="catppuccin-accents"
+            aria-label="Catppuccin accent"
+          ></div>
+          <div class="catppuccin-preview" aria-hidden="true">
+            <span>1.00</span><button type="button">−</button><button type="button">+</button>
+          </div>
         </div>
         <div class="row">
           <label for="controllerOpacity"

@@ -212,6 +212,16 @@ export function getControllerThemeLabel(theme: ControllerTheme): string {
   return `${flavor[0].toUpperCase()}${flavor.slice(1)} ${accent[0].toUpperCase()}${accent.slice(1)}`;
 }
 
+/** Return the accent color for a picker swatch, if this is a Catppuccin theme. */
+export function getControllerThemeAccentColor(theme: ControllerTheme): string | null {
+  const parts = getThemeParts(theme);
+  if (!parts) {
+    return null;
+  }
+  const [flavor, accent] = parts;
+  return CATPPUCCIN_PALETTES[flavor].accents[accent];
+}
+
 export function getControllerThemeCSS(theme: ControllerTheme): string {
   const palette = getThemePalette(theme);
   if (!palette) {

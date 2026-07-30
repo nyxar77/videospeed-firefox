@@ -647,6 +647,117 @@ button:active {
   font-size: 14px;
 }
 
+.catppuccin-picker {
+  margin: -4px 0 24px;
+  padding: 16px;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 12px;
+  background: var(--md-surface-container);
+}
+
+.catppuccin-picker-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  color: var(--md-on-surface);
+}
+
+.catppuccin-picker-heading em {
+  display: block;
+  margin-top: 2px;
+  color: var(--md-on-surface-variant);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.catppuccin-selection {
+  color: var(--md-primary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.catppuccin-flavors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.catppuccin-flavor {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--md-on-surface-variant);
+  font-size: 12px;
+}
+
+.catppuccin-flavor:hover,
+.catppuccin-flavor.active {
+  border-color: var(--md-primary);
+  background: var(--md-primary);
+  color: var(--md-on-primary);
+}
+
+.catppuccin-accents {
+  display: grid;
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.catppuccin-accent {
+  aspect-ratio: 1;
+  min-height: 24px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--swatch-color);
+  box-shadow: none;
+}
+
+.catppuccin-accent:hover,
+.catppuccin-accent:focus-visible {
+  transform: scale(1.12);
+}
+
+.catppuccin-accent.active {
+  border-color: var(--md-on-surface);
+  box-shadow:
+    0 0 0 2px var(--md-surface-container),
+    0 0 0 4px var(--swatch-color);
+}
+
+.catppuccin-preview {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 16px;
+  padding: 4px 6px;
+  border: 1px solid var(--md-primary);
+  border-radius: 7px;
+  background: var(--md-surface);
+  color: var(--md-on-surface);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.catppuccin-preview span {
+  min-width: 38px;
+  text-align: center;
+}
+
+.catppuccin-preview button {
+  min-height: 24px;
+  padding: 0 8px;
+  border-radius: 5px;
+  background: var(--md-surface-variant);
+  color: var(--md-on-surface);
+}
+
 /* Controller CSS textarea */
 .row:has(#controllerCSS) {
   flex-direction: column;

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   applyThemeToDocument,
   CONTROLLER_THEMES,
+  getControllerThemeAccentColor,
   getControllerThemeCSS,
   isControllerTheme,
   normalizeControllerTheme,
@@ -73,5 +74,10 @@ describe('controller themes', () => {
     expect(document.documentElement.style.getPropertyValue('--md-primary')).toBe('#8caaee');
     applyThemeToDocument(document, 'default');
     expect(document.documentElement.style.getPropertyValue('--md-primary')).toBe('');
+  });
+
+  it('exposes the official accent color for each picker swatch', () => {
+    expect(getControllerThemeAccentColor('catppuccin-mocha-mauve')).toBe('#cba6f7');
+    expect(getControllerThemeAccentColor('default')).toBeNull();
   });
 });
