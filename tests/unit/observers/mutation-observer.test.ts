@@ -230,4 +230,25 @@ describe('MutationObserver', () => {
     expect(mockOnVideoFound[0].video).toBe(videoElement);
     expect(mockOnVideoFound[0].parent).toBe(videoElement.parentNode);
   });
+
+  it('disconnects shadow-root observers during teardown', () => {
+    const observer = new window.VSC.VideoMutationObserver(
+      { settings: {} },
+      () => {},
+      () => {},
+      { isValidMediaElement: () => true }
+    );
+    const host = document.createElement('div');
+    host.attachShadow({ mode: 'open' });
+
+    observer.checkForVideoAndShadowRoot(host, document.body, true);
+
+    const shadowObserver = [...observer.shadowObservers.values()][0];
+    const disconnect = vi.spyOn(shadowObserver, 'disconnect');
+
+    observer.stop();
+
+    expect(disconnect).toHaveBeenCalledOnce();
+    expect(observer.shadowObservers.size).toBe(0);
+  });
 });

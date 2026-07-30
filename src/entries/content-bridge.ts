@@ -66,6 +66,25 @@ async function init() {
     }
     bridgeInitialized = true;
 
+    let settingsReady = false;
+    let settingsPayload: unknown;
+    let settingsRequested = false;
+
+    const respondToSettingsRequest = (): void => {
+      if (!settingsReady) {
+        settingsRequested = true;
+        return;
+      }
+
+      dispatchToPage('VSC_SETTINGS_READY', settingsPayload);
+      docEl.removeEventListener('VSC_REQUEST_SETTINGS', respondToSettingsRequest);
+    };
+
+    // Register before the storage read. Firefox can delay storage access, while
+    // the MAIN-world script may reach document_idle and request settings first.
+    // Keeping the listener until the read completes removes that startup race.
+    docEl.addEventListener('VSC_REQUEST_SETTINGS', respondToSettingsRequest);
+
     const settings = await storageGet<StoredSettings>(null);
 
     const disabled = settings.enabled === false;
@@ -79,15 +98,13 @@ async function init() {
     const shouldAbort = disabled || blacklisted || siteDisabled;
 
     // Always respond — inject.js runs unconditionally and needs the abort
-    // signal to skip init. { once: true } limits event forgery exposure.
+    // signal to skip init.
     if (shouldAbort) {
-      docEl.addEventListener(
-        'VSC_REQUEST_SETTINGS',
-        () => {
-          dispatchToPage('VSC_SETTINGS_READY', { abort: true });
-        },
-        { once: true }
-      );
+      settingsPayload = { abort: true };
+      settingsReady = true;
+      if (settingsRequested) {
+        respondToSettingsRequest();
+      }
       return;
     }
 
@@ -97,15 +114,11 @@ async function init() {
     delete settings.blacklist;
     delete settings.enabled;
 
-    const settingsPayload = { settings, hostname };
-
-    docEl.addEventListener(
-      'VSC_REQUEST_SETTINGS',
-      () => {
-        dispatchToPage('VSC_SETTINGS_READY', settingsPayload);
-      },
-      { once: true }
-    );
+    settingsPayload = { settings, hostname };
+    settingsReady = true;
+    if (settingsRequested) {
+      respondToSettingsRequest();
+    }
 
     // --- Ongoing: storage change relay + lifecycle ---
     extensionApi.storage.onChanged.addListener((changes: StorageChanges, namespace: string) => {

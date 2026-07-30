@@ -21,7 +21,12 @@ class VideoMutationObserver {
   onVideoRemoved: VideoRemovedCallback;
   mediaObserver: MediaObserverLike;
   observer: MutationObserver | null;
-  shadowObservers: Set<ShadowRoot>;
+  shadowObservers: Map<ShadowRoot, MutationObserver>;
+  pendingMutations: MutationRecord[];
+  pendingProcessScheduled: boolean;
+  pendingIdleCallback: number | null;
+  pendingTimeout: number | null;
+  active: boolean;
 
   constructor(
     config: MutationObserverConfig,
@@ -34,7 +39,12 @@ class VideoMutationObserver {
     this.onVideoRemoved = onVideoRemoved;
     this.mediaObserver = mediaObserver;
     this.observer = null;
-    this.shadowObservers = new Set();
+    this.shadowObservers = new Map();
+    this.pendingMutations = [];
+    this.pendingProcessScheduled = false;
+    this.pendingIdleCallback = null;
+    this.pendingTimeout = null;
+    this.active = false;
   }
 
   /**
@@ -42,13 +52,9 @@ class VideoMutationObserver {
    * @param {Document} document - Document to observe
    */
   start(document: Document): void {
+    this.active = true;
     this.observer = new MutationObserver((mutations: MutationRecord[]) => {
-      // Process mutations when the browser is genuinely idle — no forced timeout.
-      // Sites do async post-load init that's sensitive to DOM insertions; a
-      // forced timeout can fire during that window.
-      requestIdleCallback(() => {
-        this.processMutations(mutations);
-      });
+      this.scheduleMutationProcessing(mutations);
     });
 
     const observerOptions = {
@@ -61,22 +67,61 @@ class VideoMutationObserver {
     window.VSC.logger.debug('Video mutation observer started');
   }
 
+  /** Coalesce bursts of page mutations into one idle-time processing pass. */
+  scheduleMutationProcessing(mutations: MutationRecord[]): void {
+    if (!this.active) {
+      return;
+    }
+
+    this.pendingMutations.push(...mutations);
+    if (this.pendingProcessScheduled) {
+      return;
+    }
+
+    this.pendingProcessScheduled = true;
+    const process = (): void => {
+      this.pendingProcessScheduled = false;
+      this.pendingIdleCallback = null;
+      this.pendingTimeout = null;
+
+      const pending = this.pendingMutations;
+      this.pendingMutations = [];
+      this.processMutations(pending);
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      this.pendingIdleCallback = window.requestIdleCallback(process, { timeout: 500 });
+    } else {
+      this.pendingTimeout = window.setTimeout(process, 0);
+    }
+  }
+
   /**
    * Process mutation events
    * @param {Array<MutationRecord>} mutations - Mutation records
    * @private
    */
   processMutations(mutations: MutationRecord[]): void {
+    const visibilityTargets = new Set<Element>();
+    const mediaToRecheck = new Set<HTMLMediaElement>();
+
     mutations.forEach((mutation: MutationRecord) => {
       switch (mutation.type) {
         case 'childList':
           this.processChildListMutation(mutation);
           break;
         case 'attributes':
-          this.processAttributeMutation(mutation);
+          this.processAttributeMutation(mutation, visibilityTargets, mediaToRecheck);
           break;
       }
     });
+
+    for (const target of visibilityTargets) {
+      this.handleVisibilityChanges(target, mediaToRecheck);
+    }
+    for (const video of mediaToRecheck) {
+      this.recheckVideoElement(video);
+    }
   }
 
   /**
@@ -117,11 +162,26 @@ class VideoMutationObserver {
    * @param {MutationRecord} mutation - Mutation record
    * @private
    */
-  processAttributeMutation(mutation: MutationRecord): void {
+  processAttributeMutation(
+    mutation: MutationRecord,
+    visibilityTargets?: Set<Element>,
+    mediaToRecheck?: Set<HTMLMediaElement>
+  ): void {
     const target = mutation.target as Element;
     // Handle style and class changes that might affect video visibility
     if (mutation.attributeName === 'style' || mutation.attributeName === 'class') {
-      this.handleVisibilityChanges(target);
+      if (visibilityTargets && mediaToRecheck) {
+        if (
+          target.tagName === 'VIDEO' ||
+          (target.tagName === 'AUDIO' && this.config.settings.audioBoolean)
+        ) {
+          mediaToRecheck.add(target as HTMLMediaElement);
+        } else {
+          visibilityTargets.add(target);
+        }
+      } else {
+        this.handleVisibilityChanges(target);
+      }
     }
 
     // Handle special cases like Apple TV+ player
@@ -153,13 +213,21 @@ class VideoMutationObserver {
    * @param {Element} element - Element that had style/class changes
    * @private
    */
-  handleVisibilityChanges(element: Element): void {
+  handleVisibilityChanges(element: Element, mediaToRecheck?: Set<HTMLMediaElement>): void {
+    const recheck = (video: HTMLMediaElement): void => {
+      if (mediaToRecheck) {
+        mediaToRecheck.add(video);
+      } else {
+        this.recheckVideoElement(video);
+      }
+    };
+
     // If the element itself is a video
     if (
       element.tagName === 'VIDEO' ||
       (element.tagName === 'AUDIO' && this.config.settings.audioBoolean)
     ) {
-      this.recheckVideoElement(element as HTMLMediaElement);
+      recheck(element as HTMLMediaElement);
       return;
     }
 
@@ -169,7 +237,7 @@ class VideoMutationObserver {
     const videos = element.querySelectorAll ? element.querySelectorAll(mediaTagSelector) : [];
 
     videos.forEach((video: Element) => {
-      this.recheckVideoElement(video as HTMLMediaElement);
+      recheck(video as HTMLMediaElement);
     });
   }
 
@@ -270,22 +338,17 @@ class VideoMutationObserver {
     }
 
     const shadowObserver = new MutationObserver((mutations: MutationRecord[]) => {
-      requestIdleCallback(
-        () => {
-          this.processMutations(mutations);
-        },
-        { timeout: 500 }
-      );
+      this.scheduleMutationProcessing(mutations);
     });
 
     const observerOptions = {
-      attributeFilter: ['aria-hidden', 'data-focus-method'],
+      attributeFilter: ['aria-hidden', 'data-focus-method', 'style', 'class'],
       childList: true,
       subtree: true,
     };
 
     shadowObserver.observe(shadowRoot, observerOptions);
-    this.shadowObservers.add(shadowRoot);
+    this.shadowObservers.set(shadowRoot, shadowObserver);
 
     window.VSC.logger.debug('Shadow root observer added');
   }
@@ -303,16 +366,30 @@ class VideoMutationObserver {
    * Stop observing and clean up
    */
   stop(): void {
+    this.active = false;
+
     if (this.observer) {
       this.observer.disconnect();
       this.observer = null;
     }
 
-    // Clean up shadow observers
-    this.shadowObservers.forEach((_shadowRoot) => {
-      // Note: We can't access the observer directly, but disconnecting the main
-      // observer should handle most cases. Shadow observers will be garbage collected.
-    });
+    if (this.pendingIdleCallback !== null && typeof window.cancelIdleCallback === 'function') {
+      window.cancelIdleCallback(this.pendingIdleCallback);
+    }
+    if (this.pendingTimeout !== null) {
+      window.clearTimeout(this.pendingTimeout);
+    }
+    this.pendingIdleCallback = null;
+    this.pendingTimeout = null;
+    this.pendingProcessScheduled = false;
+    this.pendingMutations = [];
+
+    // Disconnect every shadow observer explicitly. A MutationObserver retains
+    // its callback and observed root until disconnected, which otherwise leaks
+    // the old controller lifecycle across teardown/reinit cycles.
+    for (const shadowObserver of this.shadowObservers.values()) {
+      shadowObserver.disconnect();
+    }
     this.shadowObservers.clear();
 
     window.VSC.logger.debug('Video mutation observer stopped');

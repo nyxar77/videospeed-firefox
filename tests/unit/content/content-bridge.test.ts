@@ -206,6 +206,22 @@ describe('content-bridge', () => {
   // =========================================================================
 
   describe('settings handshake', () => {
+    it('responds when the request arrives before storage finishes loading', async () => {
+      const { events, cleanup } = collectEvents('VSC_SETTINGS_READY');
+      eventCleanup = cleanup;
+
+      vi.resetModules();
+      const bridgeImport = import('../../../src/entries/content-bridge.ts');
+      await vi.advanceTimersByTimeAsync(0);
+      docEl.dispatchEvent(new CustomEvent('VSC_REQUEST_SETTINGS'));
+
+      await vi.advanceTimersByTimeAsync(50);
+      await bridgeImport;
+
+      expect(events).toHaveLength(1);
+      expect(events[0].detail.settings).toBeDefined();
+    });
+
     it('responds to VSC_REQUEST_SETTINGS with settings payload', async () => {
       getMockStorage().lastSpeed = 2.5;
       getMockStorage().rememberSpeed = true;
