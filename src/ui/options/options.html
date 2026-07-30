@@ -100,6 +100,30 @@
             <span>1.00</span><button type="button">−</button><button type="button">+</button>
           </div>
         </div>
+        <div id="customThemeSection" hidden>
+          <div class="row">
+            <label for="controllerCSS"
+              >Custom CSS<br />
+              <em>Your custom controller theme. It is only active when Custom CSS is selected.</em>
+            </label>
+            <div class="css-editor">
+              <pre id="cssHighlight" class="css-highlight" aria-hidden="true"></pre>
+              <textarea
+                id="controllerCSS"
+                rows="8"
+                spellcheck="false"
+                placeholder="/* Global override */
+vsc-controller { top: 50px !important; }
+
+/* Domain-specific */
+:root[style*='--vsc-domain: &quot;example.com&quot;'] vsc-controller {
+  display: none !important;
+}"
+              ></textarea>
+            </div>
+            <div id="cssValidation" class="css-validation"></div>
+          </div>
+        </div>
         <div class="row">
           <label for="controllerOpacity"
             >Controller opacity<br />
@@ -147,30 +171,6 @@
           </div>
           <button id="add-site-rule">Add Site Rule</button>
           <div id="siteRulesValidation" class="css-validation"></div>
-        </div>
-        <div id="customThemeSection" hidden>
-          <div class="row">
-            <label for="controllerCSS"
-              >Custom CSS<br />
-              <em>Your custom controller theme. It is only active when Custom CSS is selected.</em>
-            </label>
-            <div class="css-editor">
-              <pre id="cssHighlight" class="css-highlight" aria-hidden="true"></pre>
-              <textarea
-                id="controllerCSS"
-                rows="8"
-                spellcheck="false"
-                placeholder="/* Global override */
-vsc-controller { top: 50px !important; }
-
-/* Domain-specific */
-:root[style*='--vsc-domain: &quot;example.com&quot;'] vsc-controller {
-  display: none !important;
-}"
-              ></textarea>
-            </div>
-            <div id="cssValidation" class="css-validation"></div>
-          </div>
         </div>
       </section>
     </div>

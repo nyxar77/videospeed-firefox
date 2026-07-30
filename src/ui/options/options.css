@@ -751,9 +751,30 @@ button:active {
 }
 
 .catppuccin-preview button {
+  appearance: none;
   min-height: 24px;
   padding: 0 8px;
+  border: 1px solid var(--md-outline);
   border-radius: 5px;
+  background: var(--md-surface-variant);
+  color: var(--md-on-surface);
+  font-family: 'Lucida Console', Monaco, monospace;
+  font-size: inherit;
+  font-weight: 400;
+  line-height: 1;
+  transform: none;
+  box-shadow: none;
+  cursor: default;
+}
+
+.catppuccin-preview button::before {
+  display: none;
+}
+
+.catppuccin-preview button:hover,
+.catppuccin-preview button:active {
+  transform: none;
+  box-shadow: none;
   background: var(--md-surface-variant);
   color: var(--md-on-surface);
 }
