@@ -19,7 +19,7 @@ import { installChromeMock } from '../../helpers/chrome-mock.js';
 
 const docEl = document.documentElement;
 
-/** @type {typeof import('../../../src/core/storage-manager.js')} */
+/** @type {typeof import('../../../src/core/storage-manager.ts')} */
 let StorageManager;
 
 // Stash the original StorageManager so we can restore it for other test files.
@@ -40,7 +40,7 @@ describe('StorageManager — MAIN world (CustomEvent paths)', () => {
 
     // Force vitest to re-evaluate the module file
     vi.resetModules();
-    await import('../../../src/core/storage-manager.js');
+    await import('../../../src/core/storage-manager.ts');
 
     StorageManager = window.VSC.StorageManager;
   });

@@ -15,7 +15,7 @@ import { getExtensionApi, storageGet, storageSet } from '../utils/extension-api.
 import { matchSiteRule } from '../utils/site-pattern.ts';
 
 // Speed limits for page→bridge write validation.
-// Duplicated from constants.js (ISOLATED world can't import page modules).
+// Duplicated from constants.ts (ISOLATED world can't import page modules).
 const SPEED_MIN = 0.07;
 const SPEED_MAX = 16;
 

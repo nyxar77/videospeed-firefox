@@ -51,7 +51,7 @@ function validateExtension() {
 
   // Check key modules
   test('VideoController exists', existsSync(join(extensionRoot, 'src/core/video-controller.js')));
-  test('Settings module exists', existsSync(join(extensionRoot, 'src/core/settings.js')));
+  test('Settings module exists', existsSync(join(extensionRoot, 'src/core/settings.ts')));
   test('ActionHandler exists', existsSync(join(extensionRoot, 'src/core/action-handler.js')));
   test('ShadowDOM manager exists', existsSync(join(extensionRoot, 'src/ui/shadow-dom.js')));
 

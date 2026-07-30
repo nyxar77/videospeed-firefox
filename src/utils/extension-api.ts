@@ -12,6 +12,9 @@ interface ExtensionApi {
   storage: {
     sync?: StorageArea;
     local?: StorageArea;
+    onChanged?: {
+      addListener(callback: (changes: Record<string, unknown>, areaName: string) => void): void;
+    };
   };
   tabs: {
     query(queryInfo: unknown): Promise<unknown[]> | void;

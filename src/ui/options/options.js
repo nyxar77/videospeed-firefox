@@ -4,12 +4,12 @@
  */
 
 // Core utilities and constants - must load first
-import '../../utils/constants.js';
+import '../../utils/constants.ts';
 import '../../utils/logger.ts';
 
 // Storage and settings - depends on utils
-import '../../core/storage-manager.js';
-import '../../core/settings.js';
+import '../../core/storage-manager.ts';
+import '../../core/settings.ts';
 
 // UI helpers
 import { createRow } from './row-renderer.js';
@@ -900,7 +900,7 @@ async function export_settings() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'videospeed-settings.json';
+    a.download = 'videospeed-settings.tson';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

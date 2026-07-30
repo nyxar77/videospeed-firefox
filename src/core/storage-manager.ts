@@ -5,6 +5,7 @@ import {
   storageRemove,
   storageSet,
 } from '../utils/extension-api.ts';
+import type { StorageChanges, StoredSettings } from '../types/settings.ts';
 
 /**
  * WebExtension storage management utilities.
@@ -15,7 +16,7 @@ import {
 
 window.VSC = window.VSC || {};
 
-function hasExtensionStorage() {
+function hasExtensionStorage(): boolean {
   const api = getExtensionApi();
   return !!(api?.storage?.sync || api?.storage?.local);
 }
@@ -23,14 +24,23 @@ function hasExtensionStorage() {
 if (!window.VSC.StorageManager) {
   const docEl = document.documentElement;
 
+  function errorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+  }
+
+  interface SettingsReadyDetail {
+    abort?: boolean;
+    settings?: StoredSettings;
+  }
+
   class StorageManager {
-    static errorCallback = null;
+    static errorCallback: ((error: Error, data: Record<string, unknown>) => void) | null = null;
 
     /**
      * Register error callback for monitoring storage failures
      * @param {Function} callback - Callback function for errors
      */
-    static onError(callback) {
+    static onError(callback: (error: Error, data: Record<string, unknown>) => void): void {
       this.errorCallback = callback;
     }
 
@@ -38,19 +48,19 @@ if (!window.VSC.StorageManager) {
      * @param {Object} defaults - Default values
      * @returns {Promise<Object>} Storage data
      */
-    static async get(defaults = {}) {
+    static async get(defaults: StoredSettings = {}): Promise<StoredSettings | null> {
       if (hasExtensionStorage()) {
-        const storage = await storageGet(defaults);
+        const storage = await storageGet<StoredSettings>(defaults);
         window.VSC.logger?.debug?.('StorageManager: settings from extension storage');
         return storage;
       }
 
       // No extension storage — request settings from bridge via CustomEvent
       return new Promise((resolve) => {
-        const onReady = (e) => {
+        const onReady = (event: Event) => {
           docEl.removeEventListener('VSC_SETTINGS_READY', onReady);
           clearTimeout(timeout);
-          const detail = e.detail;
+          const detail = (event as CustomEvent<SettingsReadyDetail>).detail;
 
           // Structured clone failure: detail is null when crossing worlds
           if (!detail) {
@@ -67,7 +77,7 @@ if (!window.VSC.StorageManager) {
           }
 
           window.VSC.logger?.debug?.('StorageManager: settings from bridge');
-          resolve({ ...defaults, ...detail.settings });
+          resolve({ ...defaults, ...(detail.settings || {}) });
         };
 
         const timeout = setTimeout(() => {
@@ -86,15 +96,16 @@ if (!window.VSC.StorageManager) {
      * @param {Object} data - Data to store
      * @returns {Promise<void>}
      */
-    static async set(data) {
+    static async set(data: Record<string, unknown>): Promise<void> {
       if (hasExtensionStorage()) {
         try {
           await storageSet(data);
           window.VSC.logger?.debug?.('StorageManager: saved to extension storage');
           return;
         } catch (error) {
-          const wrapped = new Error(`Storage failed: ${error.message}`);
-          window.VSC.logger?.error?.(`Extension storage save failed: ${error.message}`);
+          const message = errorMessage(error);
+          const wrapped = new Error(`Storage failed: ${message}`);
+          window.VSC.logger?.error?.(`Extension storage save failed: ${message}`);
           if (this.errorCallback) {
             this.errorCallback(wrapped, data);
           }
@@ -120,7 +131,7 @@ if (!window.VSC.StorageManager) {
       }
 
       // Update local cache regardless (keeps in-memory state current)
-      window.VSC_settings = { ...window.VSC_settings, ...data };
+      window.VSC_settings = { ...(window.VSC_settings || {}), ...data };
       return Promise.resolve();
     }
 
@@ -129,14 +140,15 @@ if (!window.VSC.StorageManager) {
      * @param {Array<string>} keys - Keys to remove
      * @returns {Promise<void>}
      */
-    static async remove(keys) {
+    static async remove(keys: string[]): Promise<void> {
       if (hasExtensionStorage()) {
         try {
           await storageRemove(keys);
           return;
         } catch (error) {
-          const wrapped = new Error(`Storage remove failed: ${error.message}`);
-          window.VSC.logger?.error?.(`Extension storage remove failed: ${error.message}`);
+          const message = errorMessage(error);
+          const wrapped = new Error(`Storage remove failed: ${message}`);
+          window.VSC.logger?.error?.(`Extension storage remove failed: ${message}`);
           if (this.errorCallback) {
             this.errorCallback(wrapped, { removedKeys: keys });
           }
@@ -144,8 +156,9 @@ if (!window.VSC.StorageManager) {
         }
       }
       // No extension storage — update local cache only
-      if (window.VSC_settings) {
-        keys.forEach((key) => delete window.VSC_settings[key]);
+      const settings = window.VSC_settings;
+      if (settings) {
+        keys.forEach((key) => delete settings[key]);
       }
       return Promise.resolve();
     }
@@ -154,14 +167,15 @@ if (!window.VSC.StorageManager) {
      * Clear all storage.
      * @returns {Promise<void>}
      */
-    static async clear() {
+    static async clear(): Promise<void> {
       if (hasExtensionStorage()) {
         try {
           await storageClear();
           return;
         } catch (error) {
-          const wrapped = new Error(`Storage clear failed: ${error.message}`);
-          window.VSC.logger?.error?.(`Extension storage clear failed: ${error.message}`);
+          const message = errorMessage(error);
+          const wrapped = new Error(`Storage clear failed: ${message}`);
+          window.VSC.logger?.error?.(`Extension storage clear failed: ${message}`);
           if (this.errorCallback) {
             this.errorCallback(wrapped, { operation: 'clear' });
           }
@@ -175,16 +189,16 @@ if (!window.VSC.StorageManager) {
     /**
      * @param {Function} callback - Callback with changes in storage.onChanged format
      */
-    static onChanged(callback) {
+    static onChanged(callback: (changes: StorageChanges) => void): void {
       if (hasExtensionStorage()) {
-        getExtensionApi().storage.onChanged.addListener((changes, areaName) => {
+        getExtensionApi()?.storage.onChanged?.addListener((changes, areaName) => {
           if (areaName === 'sync' || areaName === 'local') {
-            callback(changes);
+            callback(changes as StorageChanges);
           }
         });
       } else {
-        docEl.addEventListener('VSC_STORAGE_CHANGED', (e) => {
-          const changes = e.detail;
+        docEl.addEventListener('VSC_STORAGE_CHANGED', (event) => {
+          const changes = (event as CustomEvent<StorageChanges>).detail;
           for (const [key, change] of Object.entries(changes)) {
             if (change.newValue !== undefined) {
               window.VSC_settings = window.VSC_settings || {};

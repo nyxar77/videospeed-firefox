@@ -13,6 +13,7 @@ import {
   DEFAULT_BINDINGS,
 } from './key-maps.ts';
 import { DEFAULT_CONTROLLER_CSS } from '../styles/controller-css-defaults.ts';
+import type { Settings } from '../types/settings.ts';
 
 window.VSC = window.VSC || {};
 
@@ -29,7 +30,7 @@ if (!window.VSC.Constants.DEFAULT_SETTINGS) {
 
   window.VSC.Constants.DEFAULT_CONTROLLER_CSS = DEFAULT_CONTROLLER_CSS;
 
-  const DEFAULT_SETTINGS = {
+  const DEFAULT_SETTINGS: Settings = {
     schemaVersion: 1,
     lastSpeed: 1.0, // default 1x
     enabled: true, // default enabled
@@ -66,7 +67,7 @@ meet.google.com`.replace(regStrip, ''),
    * @param {number} speed - Speed value
    * @returns {string} Formatted speed
    */
-  const formatSpeed = (speed) => speed.toFixed(2);
+  const formatSpeed = (speed: number): string => speed.toFixed(2);
 
   window.VSC.Constants.formatSpeed = formatSpeed;
 

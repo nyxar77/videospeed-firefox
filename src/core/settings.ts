@@ -2,10 +2,19 @@
  * Settings management for Video Speed Controller
  */
 
+import type { StorageChanges, Settings, StoredSettings, KeyBinding } from '../types/settings.ts';
+
 window.VSC = window.VSC || {};
 
 if (!window.VSC.VideoSpeedConfig) {
   class VideoSpeedConfig {
+    settings: Settings;
+    pendingSave: number | null;
+    saveTimer: ReturnType<typeof setTimeout> | null;
+    SAVE_DELAY: number;
+    _loaded: boolean;
+    _lastWrittenSpeed: number | null;
+
     constructor() {
       this.settings = { ...window.VSC.Constants.DEFAULT_SETTINGS };
       this.pendingSave = null;
@@ -26,9 +35,9 @@ if (!window.VSC.VideoSpeedConfig) {
      * Listen for storage changes from other contexts and update in-memory state.
      * @private
      */
-    _setupStorageListener() {
+    _setupStorageListener(): void {
       try {
-        window.VSC.StorageManager.onChanged((changes) => {
+        window.VSC.StorageManager.onChanged((changes: StorageChanges) => {
           for (const [key, change] of Object.entries(changes)) {
             if (!(key in this.settings) || change.newValue === undefined) {
               continue;
@@ -58,10 +67,11 @@ if (!window.VSC.VideoSpeedConfig) {
             window.VSC.logger.debug(`Settings updated from storage change: ${key}`);
           }
         });
-      } catch (e) {
+      } catch (error) {
         // StorageManager may not be fully available yet (e.g. during tests).
         // Non-fatal — the listener just won't be active.
-        window.VSC.logger.debug(`Could not set up storage change listener: ${e.message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        window.VSC.logger.debug(`Could not set up storage change listener: ${message}`);
       }
     }
 
@@ -69,14 +79,14 @@ if (!window.VSC.VideoSpeedConfig) {
      * Load settings from extension storage or pre-injected settings
      * @returns {Promise<Object>} Loaded settings
      */
-    async load() {
+    async load(): Promise<Settings | undefined> {
       try {
         // Use StorageManager which handles both contexts automatically.
         // controllerCSS: null fetches the legacy key for one-time migration (not in DEFAULT_SETTINGS).
-        const storage = await window.VSC.StorageManager.get({
+        const storage = (await window.VSC.StorageManager.get({
           ...window.VSC.Constants.DEFAULT_SETTINGS,
           controllerCSS: null,
-        });
+        })) as StoredSettings | null;
 
         // null = bridge signaled abort (site disabled/blacklisted)
         if (storage === null) {
@@ -102,9 +112,9 @@ if (!window.VSC.VideoSpeedConfig) {
           const regStrip = /^[\r\t\f\v ]+|[\r\t\f\v ]+$/gm;
           storage.siteRules = storage.blacklist
             .split('\n')
-            .map((l) => l.replace(regStrip, ''))
+            .map((line: string) => line.replace(regStrip, ''))
             .filter(Boolean)
-            .map((pattern) => ({ pattern, enabled: false, speed: null }));
+            .map((pattern: string) => ({ pattern, enabled: false, speed: null }));
           await this.save({ siteRules: storage.siteRules });
           // Keep blacklist in storage for backward compat with older extension
           // versions that may be synced across devices. Harmless dead weight.
@@ -176,7 +186,8 @@ if (!window.VSC.VideoSpeedConfig) {
         window.VSC.logger.info('Settings loaded successfully');
         return this.settings;
       } catch (error) {
-        window.VSC.logger.error(`Failed to load settings: ${error.message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        window.VSC.logger.error(`Failed to load settings: ${message}`);
         return window.VSC.Constants.DEFAULT_SETTINGS;
       }
     }
@@ -200,7 +211,7 @@ if (!window.VSC.VideoSpeedConfig) {
      * @param {Object} newSettings - Settings to save (only these keys are written)
      * @returns {Promise<boolean>} true if persisted (or debounced), false on storage failure
      */
-    async save(newSettings = {}) {
+    async save(newSettings: Partial<Settings> = {}): Promise<boolean> {
       const keys = Object.keys(newSettings);
       if (keys.length === 0) {
         return true;
@@ -221,7 +232,7 @@ if (!window.VSC.VideoSpeedConfig) {
 
       // Check if this is a speed-only update that should be debounced
       if (keys.length === 1 && keys[0] === 'lastSpeed') {
-        this.pendingSave = newSettings.lastSpeed;
+        this.pendingSave = newSettings.lastSpeed ?? null;
 
         if (this.saveTimer) {
           clearTimeout(this.saveTimer);
@@ -238,7 +249,8 @@ if (!window.VSC.VideoSpeedConfig) {
             window.VSC.logger.info('Debounced speed setting saved successfully');
           } catch (error) {
             this._lastWrittenSpeed = null;
-            window.VSC.logger.error(`Failed to persist speed: ${error.message}`);
+            const message = error instanceof Error ? error.message : String(error);
+            window.VSC.logger.error(`Failed to persist speed: ${message}`);
           }
         }, this.SAVE_DELAY);
 
@@ -248,7 +260,8 @@ if (!window.VSC.VideoSpeedConfig) {
       try {
         await window.VSC.StorageManager.set(newSettings);
       } catch (error) {
-        window.VSC.logger.error(`Failed to save settings: ${error.message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        window.VSC.logger.error(`Failed to save settings: ${message}`);
         return false;
       }
 
@@ -266,12 +279,15 @@ if (!window.VSC.VideoSpeedConfig) {
      * @param {string} property - Property to get (default: 'value')
      * @returns {*} Key binding property value
      */
-    getKeyBinding(action, property = 'value') {
+    getKeyBinding(action: string, property = 'value'): unknown {
       try {
-        const binding = this.settings.keyBindings.find((item) => item.action === action);
+        const binding = this.settings.keyBindings.find(
+          (item: KeyBinding) => item.action === action
+        );
         return binding ? binding[property] : false;
-      } catch (e) {
-        window.VSC.logger.error(`Failed to get key binding for ${action}: ${e.message}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        window.VSC.logger.error(`Failed to get key binding for ${action}: ${message}`);
         return false;
       }
     }
@@ -281,9 +297,11 @@ if (!window.VSC.VideoSpeedConfig) {
      * @param {string} action - Action name
      * @param {*} value - Value to set
      */
-    setKeyBinding(action, value) {
+    setKeyBinding(action: string, value: unknown): void {
       try {
-        const binding = this.settings.keyBindings.find((item) => item.action === action);
+        const binding = this.settings.keyBindings.find(
+          (item: KeyBinding) => item.action === action
+        );
         if (!binding) {
           window.VSC.logger.warn(`No key binding found for action: ${action}`);
           return;
@@ -297,10 +315,11 @@ if (!window.VSC.VideoSpeedConfig) {
           }
         }
 
-        binding.value = value;
+        binding.value = value as number;
         window.VSC.logger.debug(`Updated key binding ${action} to ${value}`);
-      } catch (e) {
-        window.VSC.logger.error(`Failed to set key binding for ${action}: ${e.message}`);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        window.VSC.logger.error(`Failed to set key binding for ${action}: ${message}`);
       }
     }
 
@@ -312,7 +331,9 @@ if (!window.VSC.VideoSpeedConfig) {
      * @returns {Object} Sanitized binding (shallow copy)
      * @private
      */
-    static normalizeKeyBinding(binding) {
+    static normalizeKeyBinding(
+      binding: KeyBinding | null | undefined
+    ): KeyBinding | null | undefined {
       if (!binding || !binding.modifiers) {
         return binding;
       }

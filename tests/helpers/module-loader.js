@@ -9,18 +9,18 @@
  */
 export async function loadCoreModules() {
   // Core utilities (order matters due to dependencies)
-  await import('../../src/utils/constants.js');
+  await import('../../src/utils/constants.ts');
   await import('../../src/utils/logger.ts');
   await import('../../src/utils/dom-utils.ts');
   await import('../../src/utils/event-manager.js');
 
-  // Site pattern matching — must come before settings.js (mirrors inject-entry.js).
+  // Site pattern matching — must come before settings.ts (mirrors inject-entry.js).
   // The module self-registers on window.VSC.matchSiteRule.
   await import('../../src/utils/site-pattern.ts');
 
   // Storage and settings
-  await import('../../src/core/storage-manager.js');
-  await import('../../src/core/settings.js');
+  await import('../../src/core/storage-manager.ts');
+  await import('../../src/core/settings.ts');
 
   // State management
   await import('../../src/core/state-manager.ts');
@@ -62,8 +62,8 @@ export async function loadInjectModules() {
  * Load minimal modules for lightweight tests
  */
 export async function loadMinimalModules() {
-  await import('../../src/utils/constants.js');
+  await import('../../src/utils/constants.ts');
   await import('../../src/utils/logger.ts');
-  await import('../../src/core/storage-manager.js');
-  await import('../../src/core/settings.js');
+  await import('../../src/core/storage-manager.ts');
+  await import('../../src/core/settings.ts');
 }

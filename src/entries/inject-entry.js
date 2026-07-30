@@ -5,19 +5,19 @@
  */
 
 // Core utilities and constants - must load first
-import '../utils/constants.js';
+import '../utils/constants.ts';
 import '../utils/logger.ts';
 import '../utils/debug-helper.js';
 import '../utils/dom-utils.ts';
 import '../utils/event-manager.js';
 
 // Site pattern matching — side-effect import registers window.VSC.matchSiteRule.
-// Must come before settings.js so load() can call it.
+// Must come before settings.ts so load() can call it.
 import '../utils/site-pattern.ts';
 
 // Storage and settings - depends on utils
-import '../core/storage-manager.js';
-import '../core/settings.js';
+import '../core/storage-manager.ts';
+import '../core/settings.ts';
 
 // State management - depends on utils and logger
 import '../core/state-manager.ts';

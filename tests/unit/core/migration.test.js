@@ -2,7 +2,7 @@
  * Tests for v1→v2 key binding migration (migrateKeyBindingsV2)
  *
  * The migration runs in background.js but we test the logic in isolation
- * by extracting the same maps and logic from constants.js.
+ * by extracting the same maps and logic from constants.ts.
  */
 
 import {

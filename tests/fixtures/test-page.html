@@ -150,7 +150,7 @@
           resultsDiv.textContent += `Module Integration Tests: ${integrationResults.passed} passed, ${integrationResults.failed} failed\n`;
 
           // Test settings + storage integration
-          const { VideoSpeedConfig } = await import('../../src/core/settings.js');
+          const { VideoSpeedConfig } = await import('../../src/core/settings.ts');
           const { installChromeMock, cleanupChromeMock } =
             await import('../helpers/chrome-mock.js');
 

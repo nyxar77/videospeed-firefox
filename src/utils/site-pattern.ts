@@ -94,7 +94,7 @@ export function matchSiteRule(
  * @param {string} href - URL to test
  * @returns {boolean} true if any pattern matches
  */
-// Expose on window.VSC for page-context consumers (settings.js).
+// Expose on window.VSC for page-context consumers (settings.ts).
 window.VSC = window.VSC || {};
 window.VSC.matchSiteRule = matchSiteRule;
 
