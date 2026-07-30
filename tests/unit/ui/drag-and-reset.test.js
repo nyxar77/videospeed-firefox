@@ -93,6 +93,56 @@ describe('DragAndReset', () => {
     expect(shadowController.classList.contains('dragging')).toBe(true);
   });
 
+  it('DragHandler.handleDrag keeps the controller inside the video', async () => {
+    const config = window.VSC.videoSpeedConfig;
+    await config.load();
+    const eventManager = new window.VSC.EventManager(config, null);
+    const actionHandler = new window.VSC.ActionHandler(config, eventManager);
+
+    const mockVideo = createMockVideo();
+    mockVideo.getBoundingClientRect = () => ({
+      left: 100,
+      top: 100,
+      right: 500,
+      bottom: 300,
+      width: 400,
+      height: 200,
+    });
+    mockDOM.container.appendChild(mockVideo);
+    const controller = new window.VSC.VideoController(mockVideo, null, config, actionHandler);
+
+    const shadowController = controller.div.shadowRoot.querySelector('#controller');
+    const draggable = controller.div.shadowRoot.querySelector('.draggable');
+    shadowController.getBoundingClientRect = () => ({
+      left: 100,
+      top: 100,
+      right: 200,
+      bottom: 130,
+      width: 100,
+      height: 30,
+    });
+
+    const pointerEvent = new Event('pointerdown', { bubbles: true });
+    pointerEvent.clientX = 100;
+    pointerEvent.clientY = 100;
+    pointerEvent.pointerId = 1;
+    Object.defineProperty(pointerEvent, 'target', { value: draggable, writable: true });
+    draggable.setPointerCapture = () => {};
+
+    window.VSC.DragHandler.handleDrag(mockVideo, pointerEvent);
+
+    const moveEvent = new Event('pointermove', { bubbles: true });
+    moveEvent.clientX = 1000;
+    moveEvent.clientY = 1000;
+    draggable.dispatchEvent(moveEvent);
+
+    expect(shadowController.style.left).toBe('300px');
+    expect(shadowController.style.top).toBe('170px');
+
+    const endEvent = new Event('pointerup', { bubbles: true });
+    draggable.dispatchEvent(endEvent);
+  });
+
   // --- Double-click-to-reset tests ---
 
   it('ControlsManager sets up dblclick handler on draggable', async () => {

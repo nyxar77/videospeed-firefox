@@ -58,6 +58,21 @@ describe('ControllerCSS', () => {
     expect(css.includes('#player > vsc-controller')).toBe(true);
   });
 
+  it('calculates controller coordinates relative to its containing block', () => {
+    const video = {
+      getBoundingClientRect: () => ({ left: 120, top: 80 }),
+    };
+    const containingBlock = {
+      getBoundingClientRect: () => ({ left: 20, top: 30 }),
+      scrollLeft: 5,
+      scrollTop: 7,
+    };
+
+    expect(window.VSC.ShadowDOMManager.calculatePositionRelativeTo(video, containingBlock)).toEqual(
+      { left: '105px', top: '57px' }
+    );
+  });
+
   // --- Custom CSS (user additions, stored separately) ---
 
   it('DEFAULT_SETTINGS includes customCSS field defaulting to empty string', () => {

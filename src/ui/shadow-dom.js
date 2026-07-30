@@ -257,6 +257,21 @@ class ShadowDOMManager {
 
     return { top, left };
   }
+
+  /**
+   * Calculate coordinates for a video relative to a specific containing block
+   * @param {HTMLVideoElement} video - Video element
+   * @param {HTMLElement|null} containingBlock - Controller's offset parent
+   * @returns {Object} Position object with top and left properties
+   */
+  static calculatePositionRelativeTo(video, containingBlock) {
+    const rect = video.getBoundingClientRect();
+    const containingRect = containingBlock?.getBoundingClientRect();
+    const top = rect.top - (containingRect?.top || 0) + (containingBlock?.scrollTop || 0);
+    const left = rect.left - (containingRect?.left || 0) + (containingBlock?.scrollLeft || 0);
+
+    return { top: `${top}px`, left: `${left}px` };
+  }
 }
 
 // Create singleton instance

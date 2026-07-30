@@ -23,6 +23,15 @@ class DragHandler {
       parseInt(shadowController.style.left) || 0,
       parseInt(shadowController.style.top) || 0,
     ];
+    const initialControllerRect = shadowController.getBoundingClientRect();
+    const videoRect = video.getBoundingClientRect();
+    const videoRight = videoRect.right ?? videoRect.left + videoRect.width;
+    const videoBottom = videoRect.bottom ?? videoRect.top + videoRect.height;
+    const canClampToVideo =
+      videoRect.width > 0 &&
+      videoRect.height > 0 &&
+      initialControllerRect.width > 0 &&
+      initialControllerRect.height > 0;
 
     const draggable = e.target;
 
@@ -34,8 +43,24 @@ class DragHandler {
     const onMove = (ev) => {
       const dx = ev.clientX - initialXY[0];
       const dy = ev.clientY - initialXY[1];
-      shadowController.style.left = `${initialControllerXY[0] + dx}px`;
-      shadowController.style.top = `${initialControllerXY[1] + dy}px`;
+
+      let left = initialControllerXY[0] + dx;
+      let top = initialControllerXY[1] + dy;
+
+      if (canClampToVideo) {
+        const desiredLeft = initialControllerRect.left + dx;
+        const desiredTop = initialControllerRect.top + dy;
+        const maxLeft = Math.max(videoRect.left, videoRight - initialControllerRect.width);
+        const maxTop = Math.max(videoRect.top, videoBottom - initialControllerRect.height);
+        const clampedLeft = Math.min(Math.max(desiredLeft, videoRect.left), maxLeft);
+        const clampedTop = Math.min(Math.max(desiredTop, videoRect.top), maxTop);
+
+        left = initialControllerXY[0] + (clampedLeft - initialControllerRect.left);
+        top = initialControllerXY[1] + (clampedTop - initialControllerRect.top);
+      }
+
+      shadowController.style.left = `${left}px`;
+      shadowController.style.top = `${top}px`;
     };
 
     const onEnd = () => {

@@ -148,9 +148,8 @@ class VideoController {
     // Apply all classes at once to prevent visible flash
     wrapper.className = cssClasses.join(' ');
 
-    // IMPORTANT: Wrapper gets z-index ONLY — no position, no top, no left.
-    // Position is controlled by inject.css (default: absolute; site overrides: relative).
-    // Adding inline position here would defeat CSS site overrides via specificity.
+    // Keep position controlled by inject.css so site-specific relative overrides
+    // continue to work. Generic absolute controllers are anchored after insertion.
     wrapper.style.cssText = 'z-index: 9999999 !important;';
 
     // Create shadow DOM with placeholder position (set after insertion)
@@ -174,13 +173,21 @@ class VideoController {
     // THEN compute position based on actual DOM state.
     // If a CSS override sets the wrapper to position:relative (e.g. YouTube, Netflix),
     // the inner controller stays at (0,0) and the CSS nudge handles placement.
-    // Otherwise (wrapper is absolute), compute coordinates for generic sites.
+    // Otherwise (wrapper is absolute), anchor the wrapper itself to the video.
+    // The wrapper's offset parent is the containing block that its top/left use;
+    // using the video's offset parent here can place the controller outside the
+    // video on pages with nested or unusual layout containers.
     const computedPosition = getComputedStyle(wrapper).position;
     if (computedPosition !== 'relative') {
-      const position = window.VSC.ShadowDOMManager.calculatePosition(this.video);
+      const position = window.VSC.ShadowDOMManager.calculatePositionRelativeTo(
+        this.video,
+        wrapper.offsetParent || this.video.offsetParent
+      );
+      wrapper.style.top = position.top;
+      wrapper.style.left = position.left;
       const innerController = window.VSC.ShadowDOMManager.getController(shadow);
-      innerController.style.top = position.top;
-      innerController.style.left = position.left;
+      innerController.style.top = '0px';
+      innerController.style.left = '0px';
     }
 
     window.VSC.logger.debug('initializeControls End');
