@@ -67,6 +67,7 @@ function queryAll<T = Any>(selector: string): T[] {
 let keyBindings: KeyBinding[] = [];
 let validationTimeout: ReturnType<typeof setTimeout> | null = null;
 let selectedCatppuccinTheme: ControllerTheme = 'catppuccin-mocha-mauve';
+let pendingImportedSettings: Partial<Settings> | null = null;
 
 function getSelectedControllerTheme(): ControllerTheme {
   const mode = getElement<HTMLSelectElement>('controllerTheme').value;
@@ -829,9 +830,9 @@ function validate(): boolean {
 }
 
 // Saves options using VideoSpeedConfig system
-async function save_options(): Promise<void> {
+async function save_options(): Promise<boolean> {
   if (validate() === false) {
-    return;
+    return false;
   }
 
   const status = getElement('status');
@@ -862,7 +863,7 @@ async function save_options(): Promise<void> {
         status.textContent = '';
         status.classList.remove('show', 'error');
       }, 5000);
-      return;
+      return false;
     }
 
     // Byte-length guard for storage.sync per-item limits.
@@ -874,7 +875,7 @@ async function save_options(): Promise<void> {
         status.textContent = '';
         status.classList.remove('show', 'error');
       }, 5000);
-      return;
+      return false;
     }
 
     // Ensure VideoSpeedConfig singleton is initialized
@@ -884,6 +885,7 @@ async function save_options(): Promise<void> {
 
     // Use VideoSpeedConfig to save settings (sync storage)
     const settingsToSave: Partial<Settings> = {
+      ...pendingImportedSettings,
       rememberSpeed: rememberSpeed,
       exclusiveKeys: exclusiveKeys,
       audioBoolean: audioBoolean,
@@ -907,6 +909,10 @@ async function save_options(): Promise<void> {
         status.textContent = '';
         status.classList.remove('show', 'error');
       }, 3000);
+      return false;
+    } else {
+      pendingImportedSettings = null;
+      return true;
     }
   } catch (error) {
     console.error('Failed to save options:', error);
@@ -916,6 +922,46 @@ async function save_options(): Promise<void> {
       status.textContent = '';
       status.classList.remove('show', 'error');
     }, 3000);
+    return false;
+  }
+}
+
+/** Populate the form without writing to extension storage. */
+function populateOptions(settings: Settings): void {
+  getElement('rememberSpeed').checked = settings.rememberSpeed;
+  getElement('exclusiveKeys').checked = settings.exclusiveKeys;
+  getElement('audioBoolean').checked = settings.audioBoolean;
+  getElement('startHidden').checked = settings.startHidden;
+  getElement('controllerOpacity').value = settings.controllerOpacity;
+  getElement('controllerButtonSize').value = settings.controllerButtonSize;
+  updateThemePicker(settings.controllerTheme);
+  getElement('logLevel').value = settings.logLevel;
+  getElement('controllerCSS').value = settings.customCSS ?? '';
+  updateCSSHighlight();
+
+  // Render site rules
+  const siteRules = settings.siteRules || window.VSC.Constants.DEFAULT_SETTINGS.siteRules;
+  const rulesContainer = getElement('site-rules-container');
+  // Clear existing rule rows but keep the header
+  rulesContainer.querySelectorAll('.row.site-rule').forEach((r: Element) => r.remove());
+  for (const rule of siteRules) {
+    add_site_rule(rule);
+  }
+
+  // Process key bindings — all rows rendered dynamically
+  const bindings = settings.keyBindings || window.VSC.Constants.DEFAULT_SETTINGS.keyBindings;
+
+  // Clear existing shortcut rows (handles restore_defaults re-render)
+  const shortcutsContainer = getElement('shortcuts-container');
+  shortcutsContainer.replaceChildren();
+
+  for (const item of bindings) {
+    if (item.predefined) {
+      add_predefined_shortcut(item);
+    } else {
+      const row = add_shortcut({ action: item.action, value: item.value });
+      setShortcutInput(row.querySelector('.customKey') as KeyInput, item);
+    }
   }
 }
 
@@ -929,42 +975,8 @@ async function restore_options(): Promise<void> {
 
     // Load settings using VideoSpeedConfig
     await window.VSC.videoSpeedConfig.load();
-    const storage = window.VSC.videoSpeedConfig.settings;
-
-    getElement('rememberSpeed').checked = storage.rememberSpeed;
-    getElement('exclusiveKeys').checked = storage.exclusiveKeys;
-    getElement('audioBoolean').checked = storage.audioBoolean;
-    getElement('startHidden').checked = storage.startHidden;
-    getElement('controllerOpacity').value = storage.controllerOpacity;
-    getElement('controllerButtonSize').value = storage.controllerButtonSize;
-    updateThemePicker(storage.controllerTheme);
-    getElement('logLevel').value = storage.logLevel;
-    getElement('controllerCSS').value = storage.customCSS ?? '';
-
-    // Render site rules
-    const siteRules = storage.siteRules || window.VSC.Constants.DEFAULT_SETTINGS.siteRules;
-    const rulesContainer = getElement('site-rules-container');
-    // Clear existing rule rows but keep the header
-    rulesContainer.querySelectorAll('.row.site-rule').forEach((r: Element) => r.remove());
-    for (const rule of siteRules) {
-      add_site_rule(rule);
-    }
-
-    // Process key bindings — all rows rendered dynamically
-    const bindings = storage.keyBindings || window.VSC.Constants.DEFAULT_SETTINGS.keyBindings;
-
-    // Clear existing shortcut rows (handles restore_defaults re-render)
-    const shortcutsContainer = getElement('shortcuts-container');
-    shortcutsContainer.replaceChildren();
-
-    for (const item of bindings) {
-      if (item.predefined) {
-        add_predefined_shortcut(item);
-      } else {
-        const row = add_shortcut({ action: item.action, value: item.value });
-        setShortcutInput(row.querySelector('.customKey') as KeyInput, item);
-      }
-    }
+    populateOptions(window.VSC.videoSpeedConfig.settings);
+    pendingImportedSettings = null;
   } catch (error) {
     console.error('Failed to restore options:', error);
     getElement<HTMLElement>('status').textContent =
@@ -1094,22 +1106,13 @@ async function handleImportFile(event: Event & { target: HTMLInputElement }): Pr
     }
     await window.VSC.videoSpeedConfig.load();
 
-    // A validated export contains every durable setting. Save it as a single
-    // merge so an interrupted write cannot erase the user's existing config.
-    const ok = await window.VSC.videoSpeedConfig.save(settings);
-    if (!ok) {
-      throw new Error('Failed to write imported settings to storage');
-    }
+    // Import is a preview operation. Merge legacy partial files into the
+    // current form, but leave storage untouched until the user presses Save.
+    pendingImportedSettings = settings;
+    populateOptions({ ...window.VSC.videoSpeedConfig.settings, ...settings });
+    document.body.dispatchEvent(new Event('input', { bubbles: true }));
 
-    // Remove custom shortcut rows before reloading UI
-    queryAll('.removeParent').forEach((button) => {
-      button.click();
-    });
-
-    // Reload settings into the UI
-    await restore_options();
-
-    status.textContent = 'Settings imported successfully';
+    status.textContent = 'Settings loaded. Press Save to apply them.';
     status.classList.remove('error');
     status.classList.add('show', 'success');
     setTimeout(() => {
@@ -1191,8 +1194,9 @@ document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
 
   saveBtn.addEventListener('click', async (e: MouseEvent) => {
     e.preventDefault();
-    await save_options();
-    markClean();
+    if (await save_options()) {
+      markClean();
+    }
   });
 
   getElement('add').addEventListener('click', () => {
