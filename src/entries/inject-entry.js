@@ -6,9 +6,9 @@
 
 // Core utilities and constants - must load first
 import '../utils/constants.js';
-import '../utils/logger.js';
+import '../utils/logger.ts';
 import '../utils/debug-helper.js';
-import '../utils/dom-utils.js';
+import '../utils/dom-utils.ts';
 import '../utils/event-manager.js';
 
 // Site pattern matching — side-effect import registers window.VSC.matchSiteRule.
@@ -20,7 +20,7 @@ import '../core/storage-manager.js';
 import '../core/settings.js';
 
 // State management - depends on utils and logger
-import '../core/state-manager.js';
+import '../core/state-manager.ts';
 
 // Observers - depends on utils and settings
 import '../observers/media-observer.js';

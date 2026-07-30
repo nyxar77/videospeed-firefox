@@ -10,8 +10,8 @@
 export async function loadCoreModules() {
   // Core utilities (order matters due to dependencies)
   await import('../../src/utils/constants.js');
-  await import('../../src/utils/logger.js');
-  await import('../../src/utils/dom-utils.js');
+  await import('../../src/utils/logger.ts');
+  await import('../../src/utils/dom-utils.ts');
   await import('../../src/utils/event-manager.js');
 
   // Site pattern matching — must come before settings.js (mirrors inject-entry.js).
@@ -23,7 +23,7 @@ export async function loadCoreModules() {
   await import('../../src/core/settings.js');
 
   // State management
-  await import('../../src/core/state-manager.js');
+  await import('../../src/core/state-manager.ts');
 
   // Site handlers
   await import('../../src/site-handlers/base-handler.js');
@@ -63,7 +63,7 @@ export async function loadInjectModules() {
  */
 export async function loadMinimalModules() {
   await import('../../src/utils/constants.js');
-  await import('../../src/utils/logger.js');
+  await import('../../src/utils/logger.ts');
   await import('../../src/core/storage-manager.js');
   await import('../../src/core/settings.js');
 }

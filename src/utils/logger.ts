@@ -5,7 +5,18 @@
 window.VSC = window.VSC || {};
 
 if (!window.VSC.logger) {
+  interface LogEntry {
+    message: string;
+    level: number;
+  }
+
   class Logger {
+    verbosity: number;
+    defaultLevel: number;
+    contextStack: string[];
+    _buffer: LogEntry[];
+    _ready: boolean;
+
     constructor() {
       this.verbosity = 3; // Default warning level
       this.defaultLevel = 4; // Default info level
@@ -19,7 +30,7 @@ if (!window.VSC.logger) {
      * Called once config.load() has the user's logLevel preference.
      * @param {number} level - Log level from LOG_LEVELS constants
      */
-    setVerbosity(level) {
+    setVerbosity(level: number): void {
       this.verbosity = level;
       if (!this._ready) {
         this._ready = true;
@@ -35,7 +46,7 @@ if (!window.VSC.logger) {
      * Set default logging level
      * @param {number} level - Default level from LOG_LEVELS constants
      */
-    setDefaultLevel(level) {
+    setDefaultLevel(level: number): void {
       this.defaultLevel = level;
     }
 
@@ -57,7 +68,7 @@ if (!window.VSC.logger) {
      * @returns {string} Formatted ID like "V1" or "A1"
      * @private
      */
-    formatVideoId(video) {
+    formatVideoId(video: HTMLMediaElement | null | undefined): string {
       if (!video) {
         return 'V?';
       }
@@ -78,7 +89,7 @@ if (!window.VSC.logger) {
      * Push context onto stack (for nested operations)
      * @param {string|HTMLMediaElement} context - Context string or video element
      */
-    pushContext(context) {
+    pushContext(context: string | HTMLMediaElement): void {
       if (typeof context === 'string') {
         this.contextStack.push(context);
       } else if (context && (context.tagName === 'VIDEO' || context.tagName === 'AUDIO')) {
@@ -89,7 +100,7 @@ if (!window.VSC.logger) {
     /**
      * Pop context from stack
      */
-    popContext() {
+    popContext(): void {
       this.contextStack.pop();
     }
 
@@ -99,7 +110,7 @@ if (!window.VSC.logger) {
      * @param {Function} fn - Function to execute
      * @returns {*} Function result
      */
-    withContext(context, fn) {
+    withContext<T>(context: string | HTMLMediaElement, fn: () => T): T {
       this.pushContext(context);
       try {
         return fn();
@@ -113,7 +124,7 @@ if (!window.VSC.logger) {
      * @param {string} message - Message to log
      * @param {number} level - Log level (optional, uses default if not specified)
      */
-    log(message, level) {
+    log(message: string, level?: number): void {
       const logLevel = typeof level === 'undefined' ? this.defaultLevel : level;
 
       if (!this._ready) {
@@ -130,7 +141,7 @@ if (!window.VSC.logger) {
      * @param {number} logLevel - Resolved log level
      * @private
      */
-    _emit(message, logLevel) {
+    _emit(message: string, logLevel: number): void {
       if (this.verbosity < logLevel) {
         return;
       }
@@ -165,7 +176,7 @@ if (!window.VSC.logger) {
      * Log error message
      * @param {string} message - Error message
      */
-    error(message) {
+    error(message: string): void {
       this.log(message, window.VSC.Constants.LOG_LEVELS.ERROR);
     }
 
@@ -173,7 +184,7 @@ if (!window.VSC.logger) {
      * Log warning message
      * @param {string} message - Warning message
      */
-    warn(message) {
+    warn(message: string): void {
       this.log(message, window.VSC.Constants.LOG_LEVELS.WARNING);
     }
 
@@ -181,7 +192,7 @@ if (!window.VSC.logger) {
      * Log info message
      * @param {string} message - Info message
      */
-    info(message) {
+    info(message: string): void {
       this.log(message, window.VSC.Constants.LOG_LEVELS.INFO);
     }
 
@@ -189,7 +200,7 @@ if (!window.VSC.logger) {
      * Log debug message
      * @param {string} message - Debug message
      */
-    debug(message) {
+    debug(message: string): void {
       this.log(message, window.VSC.Constants.LOG_LEVELS.DEBUG);
     }
 
@@ -197,7 +208,7 @@ if (!window.VSC.logger) {
      * Log verbose debug message with stack trace
      * @param {string} message - Verbose debug message
      */
-    verbose(message) {
+    verbose(message: string): void {
       this.log(message, window.VSC.Constants.LOG_LEVELS.VERBOSE);
     }
   }

@@ -4,7 +4,7 @@ import {
   storageSet,
   tabsQuery,
   tabsSendMessage,
-} from '../../utils/extension-api.js';
+} from '../../utils/extension-api.ts';
 
 // Message type constants
 const MessageTypes = {

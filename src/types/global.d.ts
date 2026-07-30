@@ -11,6 +11,10 @@ declare global {
     VSC_settings?: Record<string, unknown>;
   }
 
+  interface HTMLMediaElement {
+    vsc?: { controllerId?: string };
+  }
+
   var browser: any;
   var chrome: any;
 }

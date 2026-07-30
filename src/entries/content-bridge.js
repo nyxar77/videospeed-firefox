@@ -11,7 +11,7 @@
  */
 
 import { isBlacklisted } from '../utils/blacklist.ts';
-import { getExtensionApi, storageGet, storageSet } from '../utils/extension-api.js';
+import { getExtensionApi, storageGet, storageSet } from '../utils/extension-api.ts';
 import { matchSiteRule } from '../utils/site-pattern.ts';
 
 // Speed limits for page→bridge write validation.

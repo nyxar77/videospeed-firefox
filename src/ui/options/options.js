@@ -5,7 +5,7 @@
 
 // Core utilities and constants - must load first
 import '../../utils/constants.js';
-import '../../utils/logger.js';
+import '../../utils/logger.ts';
 
 // Storage and settings - depends on utils
 import '../../core/storage-manager.js';

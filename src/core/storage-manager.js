@@ -4,7 +4,7 @@ import {
   storageGet,
   storageRemove,
   storageSet,
-} from '../utils/extension-api.js';
+} from '../utils/extension-api.ts';
 
 /**
  * WebExtension storage management utilities.

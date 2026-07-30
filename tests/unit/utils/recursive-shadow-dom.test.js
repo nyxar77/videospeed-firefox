@@ -1,6 +1,6 @@
 /**
  * Unit tests for recursive shadow DOM media element detection
- * Tests the findShadowMedia functionality in dom-utils.js and MediaElementObserver
+ * Tests the findShadowMedia functionality in dom-utils.ts and MediaElementObserver
  */
 
 import {

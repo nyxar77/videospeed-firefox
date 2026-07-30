@@ -1,11 +1,26 @@
 /**
- * Video Speed Controller State Manager 
+ * Video Speed Controller State Manager
  * Tracks media elements for popup and keyboard commands.
  */
 
 window.VSC = window.VSC || {};
 
+interface ControllerLike {
+  controllerId: string;
+  video: HTMLMediaElement;
+}
+
+interface ControllerInfo {
+  controller: ControllerLike;
+  element: HTMLMediaElement;
+  tagName: string | undefined;
+  videoSrc: string | undefined;
+  created: number;
+}
+
 class VSCStateManager {
+  controllers: Map<string, ControllerInfo>;
+
   constructor() {
     // Map of controllerId → controller instance
     this.controllers = new Map();
@@ -17,7 +32,7 @@ class VSCStateManager {
    * Register a new controller
    * @param {VideoController} controller - Controller instance to register
    */
-  registerController(controller) {
+  registerController(controller: ControllerLike | null | undefined): void {
     if (!controller || !controller.controllerId) {
       window.VSC.logger?.warn('Invalid controller registration attempt');
       return;
@@ -29,7 +44,7 @@ class VSCStateManager {
       element: controller.video,
       tagName: controller.video?.tagName,
       videoSrc: controller.video?.src || controller.video?.currentSrc,
-      created: Date.now()
+      created: Date.now(),
     };
 
     this.controllers.set(controller.controllerId, controllerInfo);
@@ -40,7 +55,7 @@ class VSCStateManager {
    * Unregister a controller
    * @param {string} controllerId - ID of controller to unregister
    */
-  unregisterController(controllerId) {
+  unregisterController(controllerId: string): void {
     if (this.controllers.has(controllerId)) {
       this.controllers.delete(controllerId);
       window.VSC.logger?.debug(`Controller unregistered: ${controllerId}`);
@@ -51,8 +66,8 @@ class VSCStateManager {
    * Get all registered media elements
    * @returns {Array<HTMLMediaElement>} Array of media elements
    */
-  getAllMediaElements() {
-    const elements = [];
+  getAllMediaElements(): HTMLMediaElement[] {
+    const elements: HTMLMediaElement[] = [];
 
     // Clean up disconnected controllers while iterating
     for (const [id, info] of this.controllers) {
@@ -73,7 +88,7 @@ class VSCStateManager {
    * @param {string} controllerId - Controller ID
    * @returns {HTMLMediaElement|null} Media element or null
    */
-  getMediaByControllerId(controllerId) {
+  getMediaByControllerId(controllerId: string): HTMLMediaElement | null {
     const info = this.controllers.get(controllerId);
     return info?.controller?.video || info?.element || null;
   }
@@ -99,7 +114,7 @@ class VSCStateManager {
    * Compatibility method - same as unregisterController
    * @param {string} controllerId - ID of controller to remove
    */
-  removeController(controllerId) {
+  removeController(controllerId: string): void {
     this.unregisterController(controllerId);
   }
 
