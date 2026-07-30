@@ -33,6 +33,9 @@ if (!window.VSC.StorageManager) {
     settings?: StoredSettings;
   }
 
+  const SETTINGS_REQUEST_TIMEOUT = 1000;
+  const SETTINGS_REQUEST_RETRY_DELAYS = [0, 25, 75, 150, 300, 500];
+
   class StorageManager {
     static errorCallback: ((error: Error, data: Record<string, unknown>) => void) | null = null;
 
@@ -57,9 +60,25 @@ if (!window.VSC.StorageManager) {
 
       // No extension storage — request settings from bridge via CustomEvent
       return new Promise((resolve) => {
-        const onReady = (event: Event) => {
+        let settled = false;
+        let retryIndex = 0;
+        let retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+        const cleanup = (): void => {
+          settled = true;
           docEl.removeEventListener('VSC_SETTINGS_READY', onReady);
+          if (retryTimer !== null) {
+            clearTimeout(retryTimer);
+            retryTimer = null;
+          }
           clearTimeout(timeout);
+        };
+
+        const onReady = (event: Event) => {
+          if (settled) {
+            return;
+          }
+          cleanup();
           const detail = (event as CustomEvent<SettingsReadyDetail>).detail;
 
           // Structured clone failure: detail is null when crossing worlds
@@ -81,14 +100,32 @@ if (!window.VSC.StorageManager) {
         };
 
         const timeout = setTimeout(() => {
-          docEl.removeEventListener('VSC_SETTINGS_READY', onReady);
+          if (settled) {
+            return;
+          }
+          cleanup();
           window.VSC.logger?.warn?.('StorageManager: settings timeout, using defaults');
           resolve(defaults);
-        }, 2000);
+        }, SETTINGS_REQUEST_TIMEOUT);
+
+        const requestSettings = (): void => {
+          if (settled) {
+            return;
+          }
+
+          docEl.dispatchEvent(new CustomEvent('VSC_REQUEST_SETTINGS'));
+          const nextDelay = SETTINGS_REQUEST_RETRY_DELAYS[retryIndex++];
+          if (nextDelay !== undefined) {
+            retryTimer = setTimeout(requestSettings, nextDelay);
+          }
+        };
 
         docEl.addEventListener('VSC_SETTINGS_READY', onReady);
 
-        docEl.dispatchEvent(new CustomEvent('VSC_REQUEST_SETTINGS'));
+        // Content-script worlds are started independently by Firefox. Retry
+        // briefly so a MAIN-world request cannot be lost if the isolated
+        // bridge has not registered its listener yet.
+        requestSettings();
       });
     }
 

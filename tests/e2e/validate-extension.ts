@@ -117,6 +117,10 @@ function validateExtension() {
       manifest.content_scripts[1].js && manifest.content_scripts[1].js[0] === 'inject.js'
     );
     test(
+      'Main-world script starts immediately',
+      manifest.content_scripts[1].run_at === 'document_start'
+    );
+    test(
       'Required permissions present',
       manifest.permissions && manifest.permissions.includes('storage')
     );

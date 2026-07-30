@@ -85,6 +85,30 @@ describe('StorageManager — MAIN world (CustomEvent paths)', () => {
       docEl.removeEventListener('VSC_REQUEST_SETTINGS', responder);
     });
 
+    it('retries the request when the bridge registers late', async () => {
+      vi.useFakeTimers();
+
+      const bridgedSettings = { lastSpeed: 2.25 };
+      const resultPromise = StorageManager.get({ lastSpeed: 1.0 });
+
+      // The first request is intentionally lost. This models Firefox starting
+      // the MAIN and ISOLATED content-script worlds in different orders.
+      const responder = () => {
+        docEl.dispatchEvent(
+          new CustomEvent('VSC_SETTINGS_READY', {
+            detail: { settings: bridgedSettings },
+          })
+        );
+      };
+      docEl.addEventListener('VSC_REQUEST_SETTINGS', responder);
+
+      await vi.advanceTimersByTimeAsync(0);
+      const result = await resultPromise;
+
+      expect(result.lastSpeed).toBe(2.25);
+      docEl.removeEventListener('VSC_REQUEST_SETTINGS', responder);
+    });
+
     it('falls back to defaults on 2s timeout', async () => {
       vi.useFakeTimers();
 

@@ -55,12 +55,9 @@ function dispatchToPage(type: string, detail: unknown): void {
 
 async function init() {
   try {
-    // Skip about:blank frames — they share the parent window
-    if (location.href === 'about:blank') {
-      return;
-    }
-
-    // Double-injection guard (module-level flag resets on page navigation)
+    // Double-injection guard (module-level flag resets on page navigation).
+    // Do not skip about:blank frames: match_about_blank lets the MAIN-world
+    // script run there too, and it still needs this frame's settings response.
     if (bridgeInitialized) {
       return;
     }
@@ -177,6 +174,9 @@ async function init() {
     docEl.addEventListener('VSC_WRITE_STORAGE', handleWriteStorage as EventListener);
   } catch (error) {
     console.error('[VSC] Bridge init failed:', error);
+    // Never leave the MAIN-world initializer waiting for a response forever.
+    // Defaults are safer than a controller that never starts at all.
+    dispatchToPage('VSC_SETTINGS_READY', { settings: {} });
   }
 }
 
