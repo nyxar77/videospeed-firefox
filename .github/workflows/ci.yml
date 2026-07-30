@@ -50,7 +50,7 @@ jobs:
         run: nix develop --command npm test
 
       - name: Package release zip
-        run: nix develop --command node scripts/package-release.js
+        run: nix develop --command node scripts/package-release.ts
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v7
