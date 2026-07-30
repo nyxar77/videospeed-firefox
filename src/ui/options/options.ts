@@ -12,7 +12,7 @@ import '../../core/storage-manager.ts';
 import '../../core/settings.ts';
 import type { KeyBinding, KeyModifiers, Settings } from '../../types/settings.ts';
 import { createSettingsExport, parseSettingsImport } from '../../utils/settings-transfer.ts';
-import { storageGet, storageSet } from '../../utils/extension-api.ts';
+import { runtimeSendMessage, storageGet } from '../../utils/extension-api.ts';
 import { formatSavedTime, TIME_SAVED_STORAGE_KEY } from '../../utils/time-saved.ts';
 import {
   applyThemeToDocument,
@@ -1235,7 +1235,7 @@ document.addEventListener('DOMContentLoaded', async (): Promise<void> => {
   getElement('importFile').addEventListener('change', handleImportFile);
 
   getElement('resetTimeSaved').addEventListener('click', async () => {
-    await storageSet({ [TIME_SAVED_STORAGE_KEY]: 0 });
+    await runtimeSendMessage({ type: 'VSC_RESET_TIME_SAVED' });
     getElement('timeSavedTotal').textContent = '0s';
   });
 

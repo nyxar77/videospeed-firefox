@@ -23,10 +23,12 @@ const timeSavedAccumulator = new TimeSavedAccumulator({
   },
 });
 
-function addTimeSaved(milliseconds: number): void {
-  void timeSavedAccumulator
-    .add(milliseconds)
-    .catch((error) => console.error('[VSC] Failed to store saved-time statistic:', error));
+function addTimeSaved(milliseconds: number): Promise<void> {
+  return timeSavedAccumulator.add(milliseconds);
+}
+
+function resetTimeSaved(): Promise<void> {
+  return timeSavedAccumulator.reset();
 }
 
 extensionApi.runtime.onMessage.addListener((request: unknown) => {
@@ -41,7 +43,16 @@ extensionApi.runtime.onMessage.addListener((request: unknown) => {
     milliseconds > 0 &&
     milliseconds <= MAX_TIME_SAVED_DELTA_MS
   ) {
-    addTimeSaved(milliseconds);
+    return addTimeSaved(milliseconds).catch((error) => {
+      console.error('[VSC] Failed to store saved-time statistic:', error);
+      throw error;
+    });
+  }
+  if (type === 'VSC_RESET_TIME_SAVED') {
+    return resetTimeSaved().catch((error) => {
+      console.error('[VSC] Failed to reset saved-time statistic:', error);
+      throw error;
+    });
   }
 });
 

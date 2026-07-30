@@ -16,4 +16,9 @@ export class TimeSavedAccumulator {
     });
     return this.writes;
   }
+
+  reset(): Promise<void> {
+    this.writes = this.writes.then(() => this.store.write(0));
+    return this.writes;
+  }
 }

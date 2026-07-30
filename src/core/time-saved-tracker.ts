@@ -9,6 +9,7 @@ class TimeSavedTracker {
   lastMediaTime = 0;
   lastTimestamp = 0;
   lastFlushTimestamp = 0;
+  segmentPlaybackRate = 1;
   tracking = false;
   private readonly now: () => number;
   private readonly handlers: Record<string, EventListener>;
@@ -57,6 +58,7 @@ class TimeSavedTracker {
     this.lastMediaTime = this.video.currentTime;
     this.lastTimestamp = this.now();
     this.lastFlushTimestamp = this.lastTimestamp;
+    this.segmentPlaybackRate = this.video.playbackRate;
   }
 
   checkpoint(forceFlush: boolean): void {
@@ -67,9 +69,14 @@ class TimeSavedTracker {
     const timestamp = this.now();
     const mediaDelta = this.video.currentTime - this.lastMediaTime;
     const elapsed = timestamp - this.lastTimestamp;
-    this.pendingMilliseconds += calculateSavedMilliseconds(mediaDelta, elapsed);
+    this.pendingMilliseconds += calculateSavedMilliseconds(
+      mediaDelta,
+      elapsed,
+      this.segmentPlaybackRate
+    );
     this.lastMediaTime = this.video.currentTime;
     this.lastTimestamp = timestamp;
+    this.segmentPlaybackRate = this.video.playbackRate;
 
     if (forceFlush || timestamp - this.lastFlushTimestamp >= FLUSH_INTERVAL_MS) {
       this.flush();
@@ -96,12 +103,17 @@ class TimeSavedTracker {
   }
 
   flush(): void {
-    if (this.pendingMilliseconds <= 0) {
+    // Messages cross a trust boundary where only whole milliseconds are
+    // accepted. Round once per batch so fractional performance.now() values
+    // cannot silently discard an otherwise valid report.
+    const milliseconds = Math.round(this.pendingMilliseconds);
+    if (milliseconds <= 0) {
+      this.pendingMilliseconds = 0;
       return;
     }
     document.documentElement.dispatchEvent(
       new CustomEvent('VSC_ADD_TIME_SAVED', {
-        detail: { milliseconds: this.pendingMilliseconds },
+        detail: { milliseconds },
       })
     );
     this.pendingMilliseconds = 0;

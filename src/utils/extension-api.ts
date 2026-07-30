@@ -35,7 +35,7 @@ export interface ExtensionApi {
     };
     onInstalled: ApiEvent<() => void | Promise<void>>;
     onStartup: ApiEvent<() => void | Promise<void>>;
-    onMessage: ApiEvent<(request: unknown) => void>;
+    onMessage: ApiEvent<(request: unknown) => void | Promise<void>>;
     sendMessage?(message: unknown, callback?: (response: unknown) => void): Promise<unknown> | void;
   };
 }

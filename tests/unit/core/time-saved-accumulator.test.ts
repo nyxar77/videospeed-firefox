@@ -15,4 +15,18 @@ describe('TimeSavedAccumulator', () => {
 
     expect(total).toBe(3_000);
   });
+
+  it('serializes reset between reports from different tabs', async () => {
+    let total = 1_000;
+    const accumulator = new TimeSavedAccumulator({
+      read: async () => total,
+      write: async (next) => {
+        total = next;
+      },
+    });
+
+    await Promise.all([accumulator.add(500), accumulator.reset(), accumulator.add(250)]);
+
+    expect(total).toBe(250);
+  });
 });
