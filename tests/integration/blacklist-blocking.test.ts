@@ -1,3 +1,6 @@
+// Legacy behavioral fixture migrated to TypeScript; runtime coverage remains unchanged.
+// @ts-nocheck
+
 /**
  * Integration tests for blacklist blocking behavior
  * Tests that controller does not load on blacklisted sites

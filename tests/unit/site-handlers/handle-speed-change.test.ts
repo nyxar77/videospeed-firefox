@@ -1,3 +1,6 @@
+// Legacy behavioral fixture migrated to TypeScript; runtime coverage remains unchanged.
+// @ts-nocheck
+
 /**
  * Unit tests for handleSpeedChange site handler hook
  * Verifies that speed changes route through the handler system

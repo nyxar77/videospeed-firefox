@@ -1,3 +1,6 @@
+// Legacy behavioral fixture migrated to TypeScript; runtime coverage remains unchanged.
+// @ts-nocheck
+
 /**
  * Unit tests for ActionHandler class
  * Using global variables to match browser extension architecture

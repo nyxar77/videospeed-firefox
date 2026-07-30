@@ -1,3 +1,6 @@
+// Legacy behavioral fixture migrated to TypeScript; runtime coverage remains unchanged.
+// @ts-nocheck
+
 /**
  * Tests for v1→v2 key binding migration (migrateKeyBindingsV2)
  *

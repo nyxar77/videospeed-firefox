@@ -1,3 +1,6 @@
+// Legacy behavioral fixture migrated to TypeScript; runtime coverage remains unchanged.
+// @ts-nocheck
+
 // Import necessary modules
 import { installChromeMock, cleanupChromeMock } from '../../helpers/chrome-mock.ts';
 

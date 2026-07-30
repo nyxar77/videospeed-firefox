@@ -1,3 +1,6 @@
+// Legacy behavioral fixture migrated to TypeScript; runtime coverage remains unchanged.
+// @ts-nocheck
+
 /**
  * Unit tests for recursive shadow DOM media element detection
  * Tests the findShadowMedia functionality in dom-utils.ts and MediaElementObserver

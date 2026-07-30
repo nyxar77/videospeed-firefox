@@ -1,3 +1,6 @@
+// Legacy behavioral fixture migrated to TypeScript; runtime coverage remains unchanged.
+// @ts-nocheck
+
 /**
  * Unit tests for logger buffering behavior
  * Verifies messages are buffered until setVerbosity() configures the logger

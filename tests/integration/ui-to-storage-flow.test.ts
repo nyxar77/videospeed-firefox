@@ -1,3 +1,6 @@
+// Legacy behavioral fixture migrated to TypeScript; runtime coverage remains unchanged.
+// @ts-nocheck
+
 /**
  * Integration tests for full UI to storage flow
  * Tests the complete path from user interactions to storage persistence

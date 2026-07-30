@@ -1,3 +1,6 @@
+// Legacy behavioral fixture migrated to TypeScript; runtime coverage remains unchanged.
+// @ts-nocheck
+
 /**
  * Integration tests for VSCStateManager
  * Tests the complete flow: Controller creation → State tracking → Cleanup

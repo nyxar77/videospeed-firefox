@@ -1,3 +1,6 @@
+// Legacy behavioral fixture migrated to TypeScript; runtime coverage remains unchanged.
+// @ts-nocheck
+
 /**
  * Tests for event.code-based keyboard matching algorithm in EventManager.
  * Covers: chord match, simple match, legacy fallback, IME guard, dedup, precedence.

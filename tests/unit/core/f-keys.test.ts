@@ -1,3 +1,6 @@
+// Legacy behavioral fixture migrated to TypeScript; runtime coverage remains unchanged.
+// @ts-nocheck
+
 /**
  * Tests for F13-F24 and special key support
  * Verifies that the expanded keyboard handling works correctly

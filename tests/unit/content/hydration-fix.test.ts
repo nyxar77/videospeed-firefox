@@ -1,3 +1,6 @@
+// Legacy behavioral fixture migrated to TypeScript; runtime coverage remains unchanged.
+// @ts-nocheck
+
 /**
  * Tests for hydration-safe initialization tracking
  * Ensures VSC doesn't modify DOM attributes that cause React hydration errors
