@@ -2,7 +2,7 @@
 
 ## How versioning works
 
-`package.json` is the single source of truth for the extension version. The checked-in `manifest.json` contains `"version": "0.0.0"` as a placeholder. At build time, `scripts/build.mjs` reads the version from `package.json` and writes it into `dist/manifest.json`.
+`package.json` is the source of truth for the extension version. The checked-in `manifest.json` should show the same version so that the source metadata is accurate. At build time, `scripts/build.mts` reads the version from `package.json` and writes it into `dist/manifest.json`.
 
 ## Build modes
 
@@ -16,21 +16,27 @@ Both modes inject the version from `package.json` into the manifest identically.
 ## Cutting a release
 
 ```bash
-# 1. Bump version (creates a commit automatically)
-npm version patch   # or minor, major
+# 1. Bump package.json and package-lock.json without creating a commit or tag
+npm version patch --no-git-tag-version   # or minor, major
 
-# 2. Run the release pipeline: clean -> test -> build:release -> zip
+# 2. Update manifest.json to the same version
+
+# 3. Commit the version bump
+git add package.json package-lock.json manifest.json
+git commit -m "Bump version to <version>"
+
+# 4. Run the release pipeline: clean -> test -> build:release -> zip
 npm run release
 
-# 3. Tag and push
+# 5. Tag and push
 git tag v$(node -p "require('./package.json').version")
 git push origin master --tags
 
-# 4. Create a draft GitHub release (requires gh CLI)
+# 6. Create a draft GitHub release (requires gh CLI)
 npm run release:github
 
-# 5. Review the draft on GitHub, then publish
-# 6. Upload release/videospeed-*.zip to Mozilla Add-ons
+# 7. Review the draft on GitHub, then publish
+# 8. Upload release/videospeed-*.zip to Mozilla Add-ons
 ```
 
 ## What `npm run release` does
