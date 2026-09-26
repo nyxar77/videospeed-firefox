@@ -1,99 +1,66 @@
-# Video Speed Controller for Firefox
+<div align="center">
+  <img src="src/assets/icons/videospeed-logo.png" alt="Video Speed Controller logo" width="180">
+  <h1>Video Speed Controller for Firefox</h1>
+  <p>Control video and audio at your own pace.</p>
+</div>
 
-Firefox-focused WebExtension for controlling HTML5 video and audio playback
-speed from an on-page controller, keyboard shortcuts, and the extension popup.
+Video Speed Controller adds a small controller to videos and audio in Firefox. Change the
+playback speed from the page, the extension popup, or your keyboard.
 
-This fork is maintained as a Firefox port. It uses Firefox-compatible MV3
-packaging, Gecko add-on metadata, Mozilla validation through `web-ext`, and a
-Firefox-specific content bridge for page-context playback control.
+## Features and perks
 
-## Features
+### Simple playback controls
 
-- Works with HTML5 `<video>` and `<audio>` elements.
-- On-page draggable speed controller.
-- Popup controls for quick speed changes.
-- Keyboard shortcuts for speed, seek, mute, marker, and display actions.
-- Configurable shortcut bindings.
-- Per-site enable/disable and per-site default speed rules.
-- Optional remembered playback speed across refreshes and sessions.
-- Custom controller CSS.
-- Built-in Catppuccin palettes with per-flavour and per-accent selection.
-- Import and export for the full settings set.
-- Saved playback time tracking.
+Speed up, slow down, rewind, skip ahead, mute, or return to your preferred speed without
+digging through a player menu. The controller can be moved anywhere on the page or hidden when
+you do not need it.
 
-## Theme Defaults
+### Keyboard shortcuts
 
-The extension keeps the default controller theme as the safe first-run choice.
-Catppuccin is available as the guided theme path, with `mocha` used as the
-default flavor when a Catppuccin theme is selected.
+Control playback without leaving the video. Every shortcut can be changed, including shortcuts
+with modifier keys.
 
-## Source Submission
+### Preferences for each site
 
-Mozilla asked for source submission with exact build instructions, tool
-versions, and a script that performs the technical setup steps. This repo
-includes that path.
+Choose a default speed for a website or disable the extension where you do not want it. The
+extension can also remember your last playback speed across pages and browser sessions.
 
-Required environment:
+### Your choice of appearance
 
-- Operating system: Linux, macOS, or Windows
-- Node.js: `22.13.0` or newer
-- npm: the version bundled with that Node.js install, or newer
-- Optional for Mozilla validation: Nix with the `web-ext` tool from
-  `nix develop`
+Use the standard controller, choose a Catppuccin theme, select an accent color, or provide your
+own controller style.
 
-Step-by-step build:
+### Easy settings backup
 
-1. Install Node.js 22.13.0 or newer and confirm `node --version` and
-   `npm --version`.
-2. Run the setup script:
-   ```sh
-   npm run source:setup
-   ```
-3. For Mozilla review validation, run:
-   ```sh
-   nix develop --command web-ext lint --source-dir=dist
-   ```
-4. Load `manifest.json` or `dist/manifest.json` from
-   `about:debugging#/runtime/this-firefox` for local Firefox testing.
+Export your settings to a file and import them later. An import is shown for review before it is
+saved, so it does not silently replace your current setup.
 
-The root manifest points at the built files in `dist/`, and the build also
-writes a standalone `dist/manifest.json`.
+### Time saved
 
-## Validation
+See how much listening or viewing time you have saved by using faster playback.
 
-The CI pipeline runs the same checks through the Nix dev shell:
+## Privacy
 
-- `npm run lint`
-- `npm run build:release`
-- `node tests/e2e/validate-extension.ts`
-- `nix develop --command web-ext lint --source-dir=dist`
-- `npm test`
+The extension does not collect personal data. Your preferences and playback information stay in
+Firefox storage. Read the full [privacy policy](PRIVACY.md) for details.
 
-## Release Notes
+## Help and project information
 
-Release builds are generated from `dist/`:
+If something is broken, open an [issue](https://github.com/nyxar77/videospeed-firefox/issues).
+There are separate forms for general bugs, requests, and problems that happen on a particular
+website.
 
-```sh
-npm run release
-```
-
-The resulting zip is written to `release/` and should pass Mozilla validation
-before upload.
-
-## Settings Workflow
-
-The options page supports staged imports. Imported settings are loaded into the
-form first, then applied only after you press Save. This keeps imports from
-silently overwriting the current profile.
+Instructions for working with the source are in [building from source](docs/building.md). Release
+maintainers can also read the [release process](docs/release.md).
 
 ## Credits
 
-This project is based on the original
-[Video Speed Controller](https://github.com/igrigorik/videospeed) by
-Ilya Grigorik and contributors, originally licensed under the MIT License.
-This Firefox fork keeps the original idea and much of the project lineage
-while adapting the extension for Firefox WebExtensions.
+Video Speed Controller was created by
+[Ilya Grigorik](https://github.com/igrigorik) with contributions from the community. This project
+is a Firefox version of the original
+[Video Speed Controller](https://github.com/igrigorik/videospeed).
 
 ## License
 
-GPL-3.0-or-later. See [LICENSE](LICENSE).
+This project is licensed under the GNU General Public License version 3 or later. See
+[LICENSE](LICENSE) for the full license text.
