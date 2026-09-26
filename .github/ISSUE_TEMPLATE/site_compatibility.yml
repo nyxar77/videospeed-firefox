@@ -1,0 +1,99 @@
+name: Site compatibility report
+description: Report a video or audio player that does not work correctly
+title: '[Site]: '
+body:
+  - type: markdown
+    attributes:
+      value: Use this form when the problem happens on a particular website or media player.
+
+  - type: input
+    id: url
+    attributes:
+      label: Website URL
+      description: Link to a public page that reproduces the problem when possible.
+      placeholder: https://example.com/video
+    validations:
+      required: true
+
+  - type: dropdown
+    id: media-type
+    attributes:
+      label: Media type
+      options:
+        - Video
+        - Audio
+        - Live stream
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What does not work?
+      description: Describe the behavior and what you expected instead.
+      placeholder: The controller appears, but changing the speed has no effect.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Start playback ...
+        3. Press ...
+    validations:
+      required: true
+
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension version
+      placeholder: 0.10.3
+    validations:
+      required: true
+
+  - type: input
+    id: firefox-version
+    attributes:
+      label: Firefox version
+      placeholder: Firefox 143.0.1
+    validations:
+      required: true
+
+  - type: input
+    id: operating-system
+    attributes:
+      label: Operating system
+      placeholder: Fedora 42, Windows 11, macOS 15, Android 16, etc.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: other-extensions
+    attributes:
+      label: Does it also happen after disabling other extensions?
+      options:
+        - Yes
+        - No
+        - Not tested
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Add relevant console output, screenshots, or recordings. Remove personal information first.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues for this website.
+          required: true
+        - label: The page contains HTML5 video or audio that plays in Firefox.
+          required: true

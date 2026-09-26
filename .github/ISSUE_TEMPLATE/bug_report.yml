@@ -1,0 +1,76 @@
+name: Bug report
+description: Report a problem that is not limited to one website
+title: '[Bug]: '
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. If the problem only happens on one website, use the site compatibility report instead.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected to happen.
+      placeholder: The controller does X, but I expected Y.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Give the smallest set of steps that reliably triggers the problem.
+      placeholder: |
+        1. Open ...
+        2. Press ...
+        3. See ...
+    validations:
+      required: true
+
+  - type: input
+    id: extension-version
+    attributes:
+      label: Extension version
+      description: Find this in Firefox under Add-ons and themes.
+      placeholder: 0.10.3
+    validations:
+      required: true
+
+  - type: input
+    id: firefox-version
+    attributes:
+      label: Firefox version
+      placeholder: Firefox 143.0.1
+    validations:
+      required: true
+
+  - type: input
+    id: operating-system
+    attributes:
+      label: Operating system
+      placeholder: Fedora 42, Windows 11, macOS 15, Android 16, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Add any relevant browser-console output, screenshots, or recordings. Remove personal information first.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Include relevant settings, other extensions, or anything else that may help.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched the existing issues for this problem.
+          required: true
+        - label: I am using the Firefox version of Video Speed Controller.
+          required: true
